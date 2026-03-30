@@ -9,15 +9,17 @@ const config: Config = {
     extend: {
       colors: {
         ruberra: {
-          bg:       "#0a0a0c",
-          surface:  "#111116",
-          rail:     "#0e0e12",
-          border:   "#1e1e26",
-          muted:    "#3a3a48",
-          text:     "#e8e8f0",
-          subtext:  "#7a7a90",
-          accent:   "#6c63ff",
-          pulse:    "#22c55e",
+          bg:      "#f5f4f2",
+          surface: "#fafaf8",
+          rail:    "#f0efed",
+          border:  "#e2e0dc",
+          text:    "#1a1916",
+          subtext: "#6b6966",
+          muted:   "#b0ada8",
+          accent:  "#5b52e8",
+          pulse:   "#3d9b6e",
+          warm:    "#ebe9e5",
+          stone:   "#f0eeeb",
         },
       },
       fontFamily: {
