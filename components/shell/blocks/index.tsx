@@ -1,39 +1,56 @@
 import { type MessageBlock, type BlockItem, type StatusFlag } from "../types";
 
 // ─── Semantic color system ────────────────────────────────────────────────────
-// Solid, visible — not washed out at 10% opacity
 
 function statusBadgeClass(status: StatusFlag): string {
   switch (status) {
-    case "pass":
-    case "done":
-    case "live":
+    case "pass": case "done": case "live":
       return "bg-emerald-50 text-emerald-700 border border-emerald-200";
     case "fail":
       return "bg-red-50 text-red-700 border border-red-200";
-    case "partial":
-    case "warn":
+    case "partial": case "warn":
       return "bg-amber-50 text-amber-700 border border-amber-200";
-    case "running":
-    case "current":
+    case "running": case "current":
       return "bg-indigo-50 text-indigo-700 border border-indigo-200";
-    case "pending":
-    case "skip":
-    case "locked":
-    default:
+    case "pending": case "skip": case "locked": default:
       return "bg-stone-100 text-stone-500 border border-stone-200";
   }
 }
 
 function statusRowBg(status: StatusFlag | undefined): string {
   switch (status) {
-    case "pass": case "done": case "live":    return "bg-emerald-50/40";
-    case "fail":                               return "bg-red-50/40";
-    case "partial": case "warn":              return "bg-amber-50/40";
-    case "running": case "current":           return "bg-indigo-50/30";
+    case "pass": case "done": case "live":    return "bg-emerald-50/70";
+    case "fail":                               return "bg-red-50/70";
+    case "partial": case "warn":              return "bg-amber-50/70";
+    case "running": case "current":           return "bg-indigo-50/50";
     default:                                  return "";
   }
 }
+
+function valueColor(status: StatusFlag | undefined): string {
+  switch (status) {
+    case "pass": case "done": case "live":    return "text-emerald-600";
+    case "fail":                               return "text-red-600";
+    case "partial": case "warn":              return "text-amber-600";
+    case "running": case "current":           return "text-indigo-600";
+    default:                                  return "text-ruberra-subtext";
+  }
+}
+
+// Mutation prefix DNA — maps status to a mono diff symbol
+const MUTATION: Record<string, { symbol: string; color: string }> = {
+  pass:    { symbol: "+", color: "text-emerald-600" },
+  done:    { symbol: "+", color: "text-emerald-600" },
+  live:    { symbol: "+", color: "text-emerald-600" },
+  fail:    { symbol: "−", color: "text-red-600"     },
+  warn:    { symbol: "~", color: "text-amber-600"   },
+  partial: { symbol: "~", color: "text-amber-600"   },
+  running: { symbol: "›", color: "text-indigo-600"  },
+  current: { symbol: "›", color: "text-indigo-600"  },
+  pending: { symbol: "·", color: "text-stone-400"   },
+  skip:    { symbol: "·", color: "text-stone-400"   },
+  locked:  { symbol: "·", color: "text-stone-400"   },
+};
 
 export function StatusBadge({ status }: { status: StatusFlag }) {
   return (
@@ -63,8 +80,98 @@ function NextMoveFooter({ next }: { next: string }) {
   );
 }
 
+// ─── StateRail — shared rail for Execution + Lesson ──────────────────────────
+
+type RailMode = "execution" | "lesson";
+
+function railColor(status: StatusFlag | undefined): string {
+  switch (status) {
+    case "done": case "pass":             return "bg-emerald-200";
+    case "running": case "current":       return "bg-indigo-200";
+    case "fail":                          return "bg-red-200";
+    default:                              return "bg-ruberra-border";
+  }
+}
+
+function RailCircle({ status, mode }: { status: StatusFlag | undefined; mode: RailMode }) {
+  const isDone    = status === "done" || status === "pass";
+  const isActive  = status === "running" || status === "current";
+  const isFailed  = status === "fail";
+  const isLocked  = status === "locked";
+
+  if (mode === "lesson") {
+    return (
+      <div className={[
+        "relative z-10 w-5 h-5 rounded-full flex items-center justify-center shrink-0 border-2",
+        isDone   ? "bg-emerald-50 border-emerald-400" :
+        isActive ? "bg-indigo-50 border-indigo-400"   :
+        isLocked ? "bg-stone-50 border-stone-200"     :
+        "bg-white border-ruberra-border",
+      ].join(" ")}>
+        {isDone   && <span className="text-emerald-600 text-[9px] font-bold leading-none">✓</span>}
+        {isActive && <span className="text-indigo-600 text-[9px] font-bold leading-none">→</span>}
+        {isLocked && <span className="text-stone-400 text-[9px] leading-none">⊘</span>}
+        {!isDone && !isActive && !isLocked && <span className="w-1 h-1 rounded-full bg-stone-300" />}
+      </div>
+    );
+  }
+
+  return (
+    <div className={[
+      "relative z-10 w-5 h-5 rounded-full flex items-center justify-center shrink-0 border-2",
+      isDone   ? "bg-emerald-50 border-emerald-400" :
+      isActive ? "bg-indigo-50 border-indigo-400"   :
+      isFailed ? "bg-red-50 border-red-400"         :
+      "bg-white border-ruberra-border",
+    ].join(" ")}>
+      {isDone   && <span className="text-emerald-600 text-[9px] font-bold leading-none">✓</span>}
+      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
+      {isFailed && <span className="text-red-500 text-[9px] font-bold leading-none">✗</span>}
+      {!isDone && !isActive && !isFailed && <span className="w-1 h-1 rounded-full bg-stone-300" />}
+    </div>
+  );
+}
+
+function StateRail({ items, mode }: { items: BlockItem[]; mode: RailMode }) {
+  return (
+    <div className="relative py-1">
+      <div className="absolute left-[27px] top-3 bottom-3 w-px bg-ruberra-border" />
+      {items.map((item, ii) => {
+        const isDone   = item.status === "done" || item.status === "pass";
+        const isActive = item.status === "running" || item.status === "current";
+        const isFailed = item.status === "fail";
+        const isLast   = ii === items.length - 1;
+        return (
+          <div key={ii} className="flex items-start gap-3 px-4 py-1.5 relative">
+            {!isLast && (
+              <div className={["absolute left-[27px] top-[22px] bottom-0 w-px", railColor(item.status)].join(" ")} />
+            )}
+            <RailCircle status={item.status} mode={mode} />
+            <div className="flex-1 min-w-0 flex items-center justify-between gap-2 mt-0.5">
+              <span className={[
+                "text-sm",
+                isDone   ? "line-through text-ruberra-muted" :
+                isActive ? "text-ruberra-text font-medium"   :
+                isFailed ? "text-red-700"                    :
+                "text-ruberra-subtext",
+              ].join(" ")}>
+                {item.label}
+                {item.value && !isDone && (
+                  <span className={["ml-2 font-normal font-mono text-xs", valueColor(item.status)].join(" ")}>
+                    {item.value}
+                  </span>
+                )}
+              </span>
+              {(isActive || isFailed) && item.status && <StatusBadge status={item.status} />}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Verdict — heaviest weight ────────────────────────────────────────────────
-// border-2, darker header, heavier title — tribunal surface
 
 function VerdictBlock({ block }: { block: MessageBlock }) {
   return (
@@ -89,7 +196,11 @@ function VerdictBlock({ block }: { block: MessageBlock }) {
                   <span className="truncate text-ruberra-text">{item.label}</span>
                 </span>
                 <span className="flex items-center gap-2 shrink-0">
-                  {item.value && <span className="font-mono text-[11px] text-ruberra-subtext">{item.value}</span>}
+                  {item.value && (
+                    <span className={["font-mono text-[11px]", valueColor(item.status)].join(" ")}>
+                      {item.value}
+                    </span>
+                  )}
                   {item.status && <StatusBadge status={item.status} />}
                 </span>
               </li>
@@ -103,76 +214,6 @@ function VerdictBlock({ block }: { block: MessageBlock }) {
 }
 
 // ─── Execution — step rail ────────────────────────────────────────────────────
-// Stateful connector rail: done / running / pending / fail
-
-function railColor(status: StatusFlag | undefined): string {
-  switch (status) {
-    case "done": case "pass":             return "bg-emerald-200";
-    case "running": case "current":       return "bg-indigo-200";
-    case "fail":                          return "bg-red-200";
-    default:                              return "bg-ruberra-border";
-  }
-}
-
-function StepCircle({ status }: { status: StatusFlag | undefined }) {
-  const isDone    = status === "done" || status === "pass";
-  const isActive  = status === "running" || status === "current";
-  const isFailed  = status === "fail";
-
-  return (
-    <div className={[
-      "relative z-10 w-5 h-5 rounded-full flex items-center justify-center shrink-0 border-2",
-      isDone   ? "bg-emerald-50 border-emerald-400" :
-      isActive ? "bg-indigo-50 border-indigo-400"   :
-      isFailed ? "bg-red-50 border-red-400"         :
-      "bg-white border-ruberra-border",
-    ].join(" ")}>
-      {isDone   && <span className="text-emerald-600 text-[9px] font-bold leading-none">✓</span>}
-      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
-      {isFailed && <span className="text-red-500 text-[9px] font-bold leading-none">✗</span>}
-      {!isDone && !isActive && !isFailed && <span className="w-1 h-1 rounded-full bg-stone-300" />}
-    </div>
-  );
-}
-
-function ExecutionRail({ items }: { items: BlockItem[] }) {
-  return (
-    <div className="relative py-1">
-      {/* Base connector line */}
-      <div className="absolute left-[27px] top-3 bottom-3 w-px bg-ruberra-border" />
-      {items.map((item, ii) => {
-        const isDone   = item.status === "done" || item.status === "pass";
-        const isActive = item.status === "running" || item.status === "current";
-        const isFailed = item.status === "fail";
-        const isLast   = ii === items.length - 1;
-        return (
-          <div key={ii} className="flex items-start gap-3 px-4 py-1.5 relative">
-            {/* Colored connector overlay */}
-            {!isLast && (
-              <div className={["absolute left-[27px] top-[22px] bottom-0 w-px", railColor(item.status)].join(" ")} />
-            )}
-            <StepCircle status={item.status} />
-            <div className="flex-1 min-w-0 flex items-center justify-between gap-2 mt-0.5">
-              <span className={[
-                "text-sm",
-                isDone   ? "line-through text-ruberra-muted" :
-                isActive ? "text-ruberra-text font-medium"   :
-                isFailed ? "text-red-700"                    :
-                "text-ruberra-subtext",
-              ].join(" ")}>
-                {item.label}
-                {item.value && !isDone && (
-                  <span className="ml-2 font-normal text-ruberra-muted font-mono text-xs">{item.value}</span>
-                )}
-              </span>
-              {(isActive || isFailed) && item.status && <StatusBadge status={item.status} />}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 function ExecutionBlock({ block }: { block: MessageBlock }) {
   return (
@@ -186,7 +227,7 @@ function ExecutionBlock({ block }: { block: MessageBlock }) {
       {block.sections.map((section, si) => (
         <div key={si}>
           <SectionLabel heading={section.heading} />
-          <ExecutionRail items={section.items} />
+          <StateRail items={section.items} mode="execution" />
         </div>
       ))}
       {block.meta?.next && <NextMoveFooter next={block.meta.next} />}
@@ -195,27 +236,6 @@ function ExecutionBlock({ block }: { block: MessageBlock }) {
 }
 
 // ─── Lesson — progression rail ────────────────────────────────────────────────
-
-function LessonCircle({ status }: { status: StatusFlag | undefined }) {
-  const isDone    = status === "done" || status === "pass";
-  const isCurrent = status === "current" || status === "running";
-  const isLocked  = status === "locked";
-
-  return (
-    <div className={[
-      "relative z-10 w-5 h-5 rounded-full flex items-center justify-center shrink-0 border-2",
-      isDone    ? "bg-emerald-50 border-emerald-400"    :
-      isCurrent ? "bg-indigo-50 border-indigo-400"      :
-      isLocked  ? "bg-stone-50 border-stone-200"        :
-      "bg-white border-ruberra-border",
-    ].join(" ")}>
-      {isDone    && <span className="text-emerald-600 text-[9px] font-bold leading-none">✓</span>}
-      {isCurrent && <span className="text-indigo-600 text-[9px] font-bold leading-none">→</span>}
-      {isLocked  && <span className="text-stone-400 text-[9px] leading-none">⊘</span>}
-      {!isDone && !isCurrent && !isLocked && <span className="w-1 h-1 rounded-full bg-stone-300" />}
-    </div>
-  );
-}
 
 function LessonBlock({ block }: { block: MessageBlock }) {
   return (
@@ -236,32 +256,7 @@ function LessonBlock({ block }: { block: MessageBlock }) {
       {block.sections.map((section, si) => (
         <div key={si}>
           <SectionLabel heading={section.heading} />
-          <div className="relative py-1">
-            <div className="absolute left-[27px] top-3 bottom-3 w-px bg-ruberra-border" />
-            {section.items.map((item, ii) => {
-              const isDone    = item.status === "done" || item.status === "pass";
-              const isCurrent = item.status === "current" || item.status === "running";
-              return (
-                <div key={ii} className="flex items-start gap-3 px-4 py-1.5 relative">
-                  <LessonCircle status={item.status} />
-                  <div className="flex-1 min-w-0 flex items-center justify-between gap-2 mt-0.5">
-                    <span className={[
-                      "text-sm",
-                      isDone    ? "line-through text-ruberra-muted" :
-                      isCurrent ? "text-ruberra-text font-medium"   :
-                      "text-ruberra-subtext",
-                    ].join(" ")}>
-                      {item.label}
-                      {item.value && !isDone && (
-                        <span className="ml-2 font-normal text-ruberra-muted text-xs">{item.value}</span>
-                      )}
-                    </span>
-                    {isCurrent && <StatusBadge status="current" />}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <StateRail items={section.items} mode="lesson" />
         </div>
       ))}
       {block.meta?.next && <NextMoveFooter next={block.meta.next} />}
@@ -299,7 +294,11 @@ function CreationBlock({ block }: { block: MessageBlock }) {
                 {section.items.map((item, ii) => (
                   <div key={ii} className="flex items-center justify-between gap-2 py-1 text-sm">
                     <span className="text-ruberra-text truncate">{item.label}</span>
-                    {item.value && <span className="font-mono text-xs text-ruberra-subtext">{item.value}</span>}
+                    {item.value && (
+                      <span className={["font-mono text-xs", valueColor(item.status)].join(" ")}>
+                        {item.value}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -309,7 +308,11 @@ function CreationBlock({ block }: { block: MessageBlock }) {
                   <li key={ii} className="flex items-center justify-between gap-2 px-4 py-1.5 text-sm">
                     <span className="text-ruberra-subtext">{item.label}</span>
                     <span className="flex items-center gap-2 shrink-0">
-                      {item.value && <span className="font-mono text-xs text-ruberra-text">{item.value}</span>}
+                      {item.value && (
+                        <span className={["font-mono text-xs", valueColor(item.status)].join(" ")}>
+                          {item.value}
+                        </span>
+                      )}
                       {item.status && <StatusBadge status={item.status} />}
                     </span>
                   </li>
@@ -324,7 +327,7 @@ function CreationBlock({ block }: { block: MessageBlock }) {
   );
 }
 
-// ─── Report — tinted mutation rows ───────────────────────────────────────────
+// ─── Report — mutation diff rows ─────────────────────────────────────────────
 
 function ReportBlock({ block }: { block: MessageBlock }) {
   return (
@@ -339,21 +342,35 @@ function ReportBlock({ block }: { block: MessageBlock }) {
         <div key={si}>
           <SectionLabel heading={section.heading} />
           <ul className="pb-1">
-            {section.items.map((item, ii) => (
-              <li
-                key={ii}
-                className={[
-                  "flex items-start justify-between gap-2 px-4 py-1.5 text-sm border-b border-ruberra-border/40 last:border-0",
-                  statusRowBg(item.status),
-                ].join(" ")}
-              >
-                <span className="text-ruberra-text flex-1 min-w-0">{item.label}</span>
-                <span className="flex items-center gap-2 shrink-0">
-                  {item.value && <span className="font-mono text-[11px] text-ruberra-subtext">{item.value}</span>}
-                  {item.status && <StatusBadge status={item.status} />}
-                </span>
-              </li>
-            ))}
+            {section.items.map((item, ii) => {
+              const mut = item.status ? (MUTATION[item.status] ?? MUTATION.pending) : null;
+              return (
+                <li
+                  key={ii}
+                  className={[
+                    "flex items-start justify-between gap-2 px-4 py-1.5 text-sm border-b border-ruberra-border/40 last:border-0",
+                    statusRowBg(item.status),
+                  ].join(" ")}
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    {mut && (
+                      <span className={["font-mono text-[11px] font-semibold shrink-0 w-3", mut.color].join(" ")}>
+                        {mut.symbol}
+                      </span>
+                    )}
+                    <span className="text-ruberra-text flex-1 min-w-0">{item.label}</span>
+                  </span>
+                  <span className="flex items-center gap-2 shrink-0">
+                    {item.value && (
+                      <span className={["font-mono text-[11px]", valueColor(item.status)].join(" ")}>
+                        {item.value}
+                      </span>
+                    )}
+                    {item.status && <StatusBadge status={item.status} />}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </div>
       ))}
@@ -362,26 +379,27 @@ function ReportBlock({ block }: { block: MessageBlock }) {
   );
 }
 
-// ─── Signal — compact operational strip ──────────────────────────────────────
-// Machine metadata pulse: confidence / phase / next / mode
-// No BlockWrapper — intentionally lighter than the block types above
+// ─── Signal — `*` meta line ───────────────────────────────────────────────────
+// Flat unbordered strip — machine metadata pulse, not UI chrome
 
 function SignalBlock({ block }: { block: MessageBlock }) {
   const allItems = block.sections.flatMap((s) => s.items);
   return (
-    <div className="flex items-center gap-4 px-4 py-2.5 rounded-lg border border-ruberra-border bg-ruberra-surface flex-wrap">
+    <div className="flex items-center gap-1 text-[11px] py-1.5 flex-wrap">
+      <span className="font-mono font-semibold text-amber-500 shrink-0 mr-1">*</span>
       {block.title && (
-        <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-ruberra-muted shrink-0 pr-3 border-r border-ruberra-border">
+        <span className="font-mono text-ruberra-muted mr-2 shrink-0 uppercase text-[9px] tracking-widest">
           {block.title}
         </span>
       )}
       {allItems.map((item, i) => (
-        <span key={i} className="flex items-center gap-1.5 shrink-0">
-          <span className="text-[11px] text-ruberra-subtext">{item.label}</span>
+        <span key={i} className="flex items-center gap-1 shrink-0">
+          {i > 0 && <span className="text-ruberra-border mx-1 select-none">·</span>}
+          <span className="text-ruberra-subtext">{item.label}</span>
           {item.status ? (
             <StatusBadge status={item.status} />
           ) : item.value ? (
-            <span className="font-mono text-[11px] font-medium text-ruberra-text">{item.value}</span>
+            <span className="font-mono font-medium text-ruberra-text ml-0.5">{item.value}</span>
           ) : null}
         </span>
       ))}
