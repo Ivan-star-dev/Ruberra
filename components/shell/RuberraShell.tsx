@@ -196,9 +196,11 @@ export default function RuberraShell() {
     }
   }, [activeTab, applyParsedBlocks]);
 
+  const isLive = Object.values(signals).some((s) => s === "streaming");
+
   return (
     <div className="h-screen w-screen flex flex-col bg-ruberra-bg overflow-hidden">
-      <TopBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <TopBar activeTab={activeTab} onTabChange={setActiveTab} isLive={isLive} />
       <div className="flex flex-1 min-h-0">
         <SideRail
           activeTab={activeTab}

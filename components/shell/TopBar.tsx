@@ -6,11 +6,12 @@ import { type Tab } from "./types";
 interface TopBarProps {
   activeTab:   Tab;
   onTabChange: (tab: Tab) => void;
+  isLive:      boolean;
 }
 
-export default function TopBar({ activeTab, onTabChange }: TopBarProps) {
+export default function TopBar({ activeTab, onTabChange, isLive }: TopBarProps) {
   return (
-    <header className="relative flex items-center justify-between px-5 h-11 border-b border-ruberra-border bg-ruberra-surface shadow-sm shrink-0">
+    <header className="relative flex items-center justify-between px-5 h-11 border-b border-ruberra-border bg-ruberra-surface shrink-0">
       {/* Wordmark */}
       <span className="text-ruberra-text text-sm font-medium tracking-tight select-none opacity-80">
         Ruberra
@@ -21,10 +22,14 @@ export default function TopBar({ activeTab, onTabChange }: TopBarProps) {
         <TabSwitcher activeTab={activeTab} onTabChange={onTabChange} />
       </div>
 
-      {/* Static live dot — right */}
-      <div className="flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-ruberra-pulse" />
-        <span className="text-ruberra-subtext text-xs tracking-wide">Live</span>
+      {/* Live indicator — truthful: visible only when streaming */}
+      <div className="flex items-center gap-1.5 w-[52px] justify-end">
+        {isLive && (
+          <>
+            <span className="w-1.5 h-1.5 rounded-full bg-ruberra-pulse animate-pulse shrink-0" />
+            <span className="text-ruberra-subtext text-[10px] tracking-[0.1em] uppercase select-none">Live</span>
+          </>
+        )}
       </div>
     </header>
   );
