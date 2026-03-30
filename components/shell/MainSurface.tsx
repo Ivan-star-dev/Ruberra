@@ -305,26 +305,18 @@ export default function MainSurface({
         <div className="h-6 flex items-center justify-between">
           {execStatus !== "idle" ? (
             <>
-              <span className="flex items-center gap-2">
-                <span className="flex gap-0.5">
-                  {[0, 1, 2].map((i) => (
-                    <span
-                      key={i}
-                      className="w-1 h-1 rounded-full bg-ruberra-muted animate-bounce"
-                      style={{ animationDelay: `${i * 120}ms` }}
-                    />
-                  ))}
-                </span>
-                <span className="text-xs tracking-wide capitalize text-ruberra-accent">
+              <span className="flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-ruberra-accent animate-pulse shrink-0" />
+                <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-ruberra-accent">
                   {execStatus}
                 </span>
               </span>
               <button
                 onClick={onCancel}
-                className="text-xs text-ruberra-muted hover:text-ruberra-text transition-colors px-1"
+                className="font-mono text-[10px] text-ruberra-muted hover:text-ruberra-text transition-colors px-1 tracking-wide"
                 aria-label="Cancel stream"
               >
-                Stop
+                esc
               </button>
             </>
           ) : null}
@@ -423,6 +415,12 @@ const CHAMBER_LABEL: Record<Tab, string> = {
   creation: "CREATION",
 };
 
+const CHAMBER_DOT: Record<Tab, string> = {
+  lab:      "text-indigo-500",
+  school:   "text-emerald-500",
+  creation: "text-amber-500",
+};
+
 function ResponseHeader({
   tab,
   index,
@@ -434,8 +432,11 @@ function ResponseHeader({
 }) {
   return (
     <div className="flex items-center justify-between px-3 py-1.5 bg-ruberra-surface border border-ruberra-border rounded-t-xl border-b border-b-ruberra-border/60">
-      <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.15em] text-ruberra-subtext">
-        {CHAMBER_LABEL[tab]}
+      <span className="flex items-center gap-1.5">
+        <span className={`text-[8px] leading-none shrink-0 ${CHAMBER_DOT[tab]}`}>●</span>
+        <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.15em] text-ruberra-subtext">
+          {CHAMBER_LABEL[tab]}
+        </span>
       </span>
       <div className="flex items-center gap-2">
         {status && <StatusBadge status={status} />}
@@ -464,7 +465,7 @@ function MessageBubble({
   if (isUser) {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[72%] rounded-xl px-4 py-2.5 text-sm leading-relaxed bg-ruberra-stone text-ruberra-text shadow-sm rounded-br-sm">
+        <div className="max-w-[72%] rounded-xl px-4 py-2.5 text-sm leading-relaxed bg-ruberra-stone text-ruberra-text">
           {message.content}
         </div>
       </div>

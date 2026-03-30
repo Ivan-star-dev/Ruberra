@@ -249,24 +249,31 @@ interface SideRailProps {
   onClearTab: (tab: Tab) => void;
 }
 
+// Extract a readable preview from raw assistant content (may contain TYPE: directives)
+function extractPreview(content: string): string {
+  const titleMatch = content.match(/^TITLE:\s*(.+)$/m);
+  if (titleMatch) return titleMatch[1].trim();
+  const typeMatch = content.match(/^TYPE:\s*(\w+)/m);
+  if (typeMatch) return typeMatch[1].charAt(0).toUpperCase() + typeMatch[1].slice(1);
+  return content.length > 40 ? content.slice(0, 40) + "…" : content;
+}
+
 export default function SideRail({ activeTab, messages, signals, onClearTab }: SideRailProps) {
   const currentMessages    = messages[activeTab];
   const completedResponses = currentMessages.filter(
     (m) => m.role === "assistant" && m.content.length > 0
   );
-  const totalExchanges = completedResponses.length;
-  const totalSent      = currentMessages.filter((m) => m.role === "user").length;
 
   return (
     <aside className="w-48 shrink-0 border-r border-ruberra-border bg-ruberra-rail flex flex-col overflow-hidden">
 
       {/* Artifacts — completed assistant responses */}
       <section className="px-3 pt-5 pb-4 border-b border-ruberra-border">
-        <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-ruberra-subtext mb-2 select-none px-1">
+        <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-ruberra-subtext mb-2 select-none px-1">
           Artifacts
         </p>
         {completedResponses.length === 0 ? (
-          <p className="text-ruberra-muted text-xs px-1">None yet.</p>
+          <p className="text-ruberra-muted text-[10px] px-1 select-none">—</p>
         ) : (
           <ul>
             {completedResponses
@@ -288,7 +295,7 @@ export default function SideRail({ activeTab, messages, signals, onClearTab }: S
         <SignalMeta label="outputs" value={String(artifacts.length)} />
       {/* History — with per-tab clear */}
       <section className="px-3 pt-4 pb-4 border-b border-ruberra-border">
-        <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-ruberra-subtext mb-2 select-none px-1">
+        <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-ruberra-subtext mb-2 select-none px-1">
           History
         </p>
         <ul>
@@ -334,6 +341,7 @@ export default function SideRail({ activeTab, messages, signals, onClearTab }: S
 
 /* ── Root SideRail ──────────────────────────────────────────── */
 
+      {/* Signals — per-tab live state only */}
 export default function SideRail({
   activeTab,
   messages,
@@ -357,12 +365,10 @@ export default function SideRail({
           {activeTab}
       {/* Signals */}
       <section className="px-3 pt-4 pb-4">
-        <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-ruberra-subtext mb-2 select-none px-1">
+        <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-ruberra-subtext mb-2 select-none px-1">
           Signals
         </p>
         <ul className="space-y-0.5">
-          <SignalCountRow label="Sent"      value={totalSent > 0 ? String(totalSent) : "—"} />
-          <SignalCountRow label="Exchanges" value={totalExchanges > 0 ? String(totalExchanges) : "—"} />
           {ALL_TABS.map((tab) => (
             <SignalStatusRow
               key={tab}
@@ -440,7 +446,7 @@ function SignalMeta({ label, value }: { label: string; value: string }) {
 function ArtifactItem({ content }: { content: string }) {
   const [copied, setCopied] = useState(false);
 
-  const preview = content.length > 40 ? content.slice(0, 40) + "…" : content;
+  const preview = extractPreview(content);
 
   function handleCopy(e: React.MouseEvent) {
     e.stopPropagation();
@@ -472,15 +478,6 @@ function ArtifactItem({ content }: { content: string }) {
           </svg>
         )}
       </button>
-    </li>
-  );
-}
-
-function SignalCountRow({ label, value }: { label: string; value: string }) {
-  return (
-    <li className="flex items-center justify-between h-6 px-2 text-xs">
-      <span className="text-ruberra-muted">{label}</span>
-      <span className="text-ruberra-subtext">{value}</span>
     </li>
   );
 }

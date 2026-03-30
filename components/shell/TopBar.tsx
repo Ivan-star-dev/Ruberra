@@ -6,6 +6,12 @@ import { type Tab, type Theme } from "./types";
 interface TopBarProps {
   activeTab:   Tab;
   onTabChange: (tab: Tab) => void;
+  isLive:      boolean;
+}
+
+export default function TopBar({ activeTab, onTabChange, isLive }: TopBarProps) {
+  return (
+    <header className="relative flex items-center justify-between px-5 h-11 border-b border-ruberra-border bg-ruberra-surface shrink-0">
   theme:       Theme;
   onThemeToggle: () => void;
 }
@@ -33,6 +39,14 @@ export default function TopBar({ activeTab, onTabChange, theme, onThemeToggle }:
         <TabSwitcher activeTab={activeTab} onTabChange={onTabChange} />
       </div>
 
+      {/* Live indicator — truthful: visible only when streaming */}
+      <div className="flex items-center gap-1.5 w-[52px] justify-end">
+        {isLive && (
+          <>
+            <span className="w-1.5 h-1.5 rounded-full bg-ruberra-pulse animate-pulse shrink-0" />
+            <span className="text-ruberra-subtext text-[10px] tracking-[0.1em] uppercase select-none">Live</span>
+          </>
+        )}
       {/* Right cluster */}
       <div className="flex items-center gap-3">
         {/* Status pulse */}
