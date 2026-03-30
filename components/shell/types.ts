@@ -18,3 +18,15 @@ export interface Signal {
   label: string;
   tab: Tab | null;
 }
+
+// Chamber-level context passed from SideRail → RuberraShell → API
+export interface ChamberContext {
+  // Lab
+  labSection?: string;
+  // School
+  schoolModule?: string;
+  // Creation
+  creationOutputType?: string;
+  creationTone?: string;
+  creationLength?: string;
+}

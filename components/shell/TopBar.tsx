@@ -37,11 +37,11 @@ export default function TopBar({ activeTab, onTabChange }: TopBarProps) {
         <TabSwitcher activeTab={activeTab} onTabChange={onTabChange} />
       </div>
 
-      {/* Right — session meta */}
+      {/* Right — new session */}
       <div className="flex items-center gap-3 w-40 justify-end">
-        <span className="text-[10px] font-mono text-ruberra-muted/50 select-none tabular-nums">
-          {new Date().toLocaleDateString("en", { month: "short", day: "numeric" })}
-        </span>
+        <button className="text-[10px] font-mono text-ruberra-muted/50 hover:text-ruberra-subtext transition-colors select-none">
+          New session
+        </button>
       </div>
     </header>
   );

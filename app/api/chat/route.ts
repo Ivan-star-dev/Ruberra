@@ -199,12 +199,24 @@ function getFallbackStream(tab: string): ReadableStream<Uint8Array> {
   });
 }
 
+// Build a context suffix from chamber context — appended to system prompt when present
+function buildContextSuffix(context: Record<string, string> | null | undefined): string {
+  if (!context || Object.keys(context).length === 0) return "";
+  const lines: string[] = ["", "ACTIVE CONTEXT:"];
+  if (context.labSection)         lines.push(`- Context focus: ${context.labSection}`);
+  if (context.schoolModule)       lines.push(`- Active curriculum module: ${context.schoolModule}`);
+  if (context.creationOutputType) lines.push(`- Output type selected: ${context.creationOutputType}`);
+  if (context.creationTone)       lines.push(`- Tone: ${context.creationTone}`);
+  if (context.creationLength)     lines.push(`- Length: ${context.creationLength}`);
+  lines.push("Apply this context to your output mode decision and response format.");
+  return lines.join("\n");
+}
+
 export async function POST(req: NextRequest) {
-  const { messages, tab } = await req.json();
+  const { messages, tab, context } = await req.json();
 
   const apiKey = process.env.OPENAI_API_KEY;
 
-  // No key → return plain-text streaming fallback so the UI always works
   if (!apiKey) {
     const stream = getFallbackStream(tab ?? "lab");
     return new Response(stream, {
@@ -219,8 +231,8 @@ export async function POST(req: NextRequest) {
 
   const openai = createOpenAI({ apiKey });
 
-  const systemPrompt =
-    TAB_SYSTEM[tab as string] ?? TAB_SYSTEM.lab;
+  const basePrompt = TAB_SYSTEM[tab as string] ?? TAB_SYSTEM.lab;
+  const systemPrompt = basePrompt + buildContextSuffix(context);
 
   const result = streamText({
     model: openai("gpt-4o-mini"),

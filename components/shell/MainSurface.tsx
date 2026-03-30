@@ -126,11 +126,17 @@ function MessageBubble({ msg, turnIndex }: { msg: Message; turnIndex: number }) 
   return (
     <div className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
       {isUser ? (
-        <div
-          className="max-w-[68%] rounded-2xl rounded-br-md px-4 py-2.5 bg-[#e8e6e2] text-ruberra-text text-[13.5px] leading-[1.65]"
-          style={{ boxShadow: "0 1px 2px rgba(26,25,22,0.05)" }}
-        >
-          {msg.content}
+        <div className="flex flex-col items-end gap-1 max-w-[68%]">
+          {/* User micro-label */}
+          <span className="font-mono text-[9px] text-ruberra-muted/40 uppercase tracking-[0.09em] select-none pr-1">
+            you
+          </span>
+          <div
+            className="rounded-xl rounded-br-sm px-4 py-2.5 bg-[#e8e6e2] text-ruberra-text text-[13.5px] leading-[1.65] w-full"
+            style={{ boxShadow: "0 1px 2px rgba(26,25,22,0.05)" }}
+          >
+            {msg.content}
+          </div>
         </div>
       ) : (
         <div
@@ -148,28 +154,34 @@ function MessageBubble({ msg, turnIndex }: { msg: Message; turnIndex: number }) 
 }
 
 // ---------------------------------------------------------------------------
-// Figma bottom status bar
+// Figma bottom status bar — dot color reactive to state
 // ---------------------------------------------------------------------------
 function StatusBar({ activeTab, streaming }: { activeTab: Tab; streaming: boolean }) {
+  const dotColor = streaming ? "#5b52e8" : "#3d9b6e";
+  const statusText = streaming ? "PROCESSING" : "CONNECTED";
   return (
     <div
-      className="flex items-center gap-3 px-6 h-7 shrink-0 select-none"
+      className="flex items-center gap-2.5 px-6 h-7 shrink-0 select-none"
       style={{ borderTop: "1px solid #e2e0dc", background: "#fafaf8" }}
     >
-      <span className={`font-mono text-[9.5px] ${streaming ? "animate-pulse" : ""}`} style={{ color: "#3d9b6e" }}>●</span>
-      <span className="font-mono text-[9.5px] text-ruberra-muted/70 uppercase tracking-[0.08em]">
+      <span
+        className={`font-mono text-[9.5px] leading-none ${streaming ? "animate-pulse" : ""}`}
+        style={{ color: dotColor }}
+      >●</span>
+      <span className="font-mono text-[9.5px] text-ruberra-muted/70 uppercase tracking-[0.07em]">
         RUBERRA CORE
       </span>
-      <span className="font-mono text-[9.5px] text-ruberra-muted/40">·</span>
-      <span className="font-mono text-[9.5px] text-ruberra-muted/60">
-        {streaming ? "PROCESSING" : "CONNECTED"}
+      <span className="font-mono text-[9px] text-ruberra-muted/30">·</span>
+      <span
+        className="font-mono text-[9.5px] uppercase tracking-[0.07em]"
+        style={{ color: dotColor }}
+      >
+        {statusText}
       </span>
-      <div className="ml-auto flex items-center gap-3">
-        <span className="font-mono text-[9.5px] text-ruberra-muted/40">
-          Model: RUBERRA-7B-15
-        </span>
-        <span className="font-mono text-[9.5px] text-ruberra-muted/40">·</span>
-        <span className="font-mono text-[9.5px] text-ruberra-muted/40 uppercase tracking-[0.08em]">
+      <div className="ml-auto flex items-center gap-2.5">
+        <span className="font-mono text-[9px] text-ruberra-muted/35">Model: RUBERRA-7B-15</span>
+        <span className="font-mono text-[9px] text-ruberra-muted/25">·</span>
+        <span className="font-mono text-[9px] text-ruberra-muted/40 uppercase tracking-[0.08em]">
           {CHAMBER_TAG[activeTab]}
         </span>
       </div>
@@ -296,8 +308,8 @@ export default function MainSurface({ activeTab, messages, onSubmit, streaming }
           )}
         </div>
 
-        <p className="text-center text-ruberra-muted/40 text-[9.5px] mt-1.5 select-none tracking-wide">
-          Shift+Enter for new line · Enter to send
+        <p className="text-right text-ruberra-muted/30 text-[9px] mt-1 select-none font-mono pr-1">
+          ↵ send · ⇧↵ newline
         </p>
       </div>
 
