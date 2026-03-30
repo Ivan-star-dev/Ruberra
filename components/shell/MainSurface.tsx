@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { type Tab } from "./TabSwitcher";
 import { type Message } from "./types";
+import RenderedOutput from "./RenderedOutput";
 
 interface MainSurfaceProps {
   activeTab: Tab;
@@ -91,10 +92,10 @@ function MessageBubble({ msg }: { msg: Message }) {
     <div className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
       <div
         className={[
-          "max-w-[68%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-[1.65]",
+          "rounded-2xl px-4 py-2.5",
           isUser
-            ? "bg-[#e8e6e2] text-ruberra-text rounded-br-md"
-            : "bg-white text-ruberra-text rounded-bl-md",
+            ? "max-w-[68%] bg-[#e8e6e2] text-ruberra-text rounded-br-md text-[13.5px] leading-[1.65]"
+            : "w-full bg-white text-ruberra-text rounded-bl-md",
         ].join(" ")}
         style={{
           boxShadow: isUser
@@ -102,13 +103,12 @@ function MessageBubble({ msg }: { msg: Message }) {
             : "0 1px 3px rgba(26,25,22,0.07), 0 0 0 1px #e8e6e2",
         }}
       >
-        {msg.content}
-        {msg.streaming && (
-          <span className="inline-flex ml-1 gap-0.5 items-end pb-0.5">
-            <span className="w-1 h-1 rounded-full bg-ruberra-muted animate-bounce [animation-delay:0ms]" />
-            <span className="w-1 h-1 rounded-full bg-ruberra-muted animate-bounce [animation-delay:120ms]" />
-            <span className="w-1 h-1 rounded-full bg-ruberra-muted animate-bounce [animation-delay:240ms]" />
-          </span>
+        {isUser ? (
+          <>
+            {msg.content}
+          </>
+        ) : (
+          <RenderedOutput content={msg.content} streaming={msg.streaming} />
         )}
       </div>
     </div>
