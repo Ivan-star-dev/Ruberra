@@ -1,9 +1,9 @@
 "use client";
 
-export type Tab = "lab" | "school" | "creation";
+import { type Tab } from "./types";
 
 interface TabSwitcherProps {
-  activeTab: Tab;
+  activeTab:   Tab;
   onTabChange: (tab: Tab) => void;
 }
 

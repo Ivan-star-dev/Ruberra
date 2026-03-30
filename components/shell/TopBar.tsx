@@ -1,6 +1,7 @@
 "use client";
 
-import TabSwitcher, { type Tab } from "./TabSwitcher";
+import TabSwitcher from "./TabSwitcher";
+import { type Tab } from "./types";
 
 interface TopBarProps {
   activeTab: Tab;
