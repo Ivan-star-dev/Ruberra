@@ -6,3 +6,5 @@ export interface Message {
   content: string;
   timestamp: number;
 }
+
+export type SignalStatus = "idle" | "streaming" | "completed" | "error";

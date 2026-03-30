@@ -1,23 +1,32 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import TopBar from "./TopBar";
 import SideRail from "./SideRail";
 import MainSurface from "./MainSurface";
-import { type Tab, type Message } from "./types";
+import { type Tab, type Message, type SignalStatus } from "./types";
 
-type TabMessages = Record<Tab, Message[]>;
-type TabLoading = Record<Tab, boolean>;
+type TabMessages  = Record<Tab, Message[]>;
+type TabLoading   = Record<Tab, boolean>;
+type TabSignals   = Record<Tab, SignalStatus>;
 
-const EMPTY_MESSAGES: TabMessages = { lab: [], school: [], creation: [] };
-const EMPTY_LOADING: TabLoading  = { lab: false, school: false, creation: false };
+const TABS: Tab[] = ["lab", "school", "creation"];
+
+function emptyRecord<T>(value: T): Record<Tab, T> {
+  return Object.fromEntries(TABS.map((t) => [t, value])) as Record<Tab, T>;
+}
 
 export default function RuberraShell() {
-  const [activeTab, setActiveTab]     = useState<Tab>("lab");
-  const [messages,  setMessages]      = useState<TabMessages>(EMPTY_MESSAGES);
-  const [loading,   setLoading]       = useState<TabLoading>(EMPTY_LOADING);
+  const [activeTab, setActiveTab] = useState<Tab>("lab");
+  const [messages,  setMessages]  = useState<TabMessages>(emptyRecord<Message[]>([]));
+  const [loading,   setLoading]   = useState<TabLoading>(emptyRecord(false));
+  const [signals,   setSignals]   = useState<TabSignals>(emptyRecord<SignalStatus>("idle"));
 
-  const handleSend = useCallback((text: string) => {
+  // Ref mirror to avoid stale closures inside async streaming callbacks
+  const messagesRef = useRef<TabMessages>(messages);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  const handleSend = useCallback(async (text: string) => {
     const tab = activeTab;
 
     const userMsg: Message = {
@@ -27,48 +36,83 @@ export default function RuberraShell() {
       timestamp: Date.now(),
     };
 
+    // Append user message and mark loading
+    setMessages((prev) => ({ ...prev, [tab]: [...prev[tab], userMsg] }));
+    setLoading((prev)   => ({ ...prev, [tab]: true }));
+    setSignals((prev)   => ({ ...prev, [tab]: "streaming" }));
+
+    const assistantId = crypto.randomUUID();
+
+    // Insert empty assistant placeholder immediately
     setMessages((prev) => ({
       ...prev,
-      [tab]: [...prev[tab], userMsg],
+      [tab]: [
+        ...prev[tab],
+        { id: assistantId, role: "assistant", content: "", timestamp: Date.now() },
+      ],
     }));
 
-    setLoading((prev) => ({ ...prev, [tab]: true }));
+    try {
+      // Build history for the API (exclude the empty placeholder)
+      const history = messagesRef.current[tab]
+        .filter((m) => !(m.id === assistantId))
+        .map(({ role, content }) => ({ role, content }));
 
-    // Simulate a brief "thinking" delay then stream a response
-    const assistantId = crypto.randomUUID();
-    const responseText = SIMULATED_RESPONSES[tab][
-      Math.floor(Math.random() * SIMULATED_RESPONSES[tab].length)
-    ];
+      const res = await fetch("/api/chat", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ tab, messages: history }),
+      });
 
-    // Insert empty assistant message placeholder
-    setTimeout(() => {
-      setMessages((prev) => ({
-        ...prev,
-        [tab]: [
-          ...prev[tab],
-          { id: assistantId, role: "assistant", content: "", timestamp: Date.now() },
-        ],
-      }));
+      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
 
-      // Stream characters one by one
-      let i = 0;
-      const interval = setInterval(() => {
-        i++;
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+
         setMessages((prev) => ({
           ...prev,
           [tab]: prev[tab].map((m) =>
             m.id === assistantId
-              ? { ...m, content: responseText.slice(0, i) }
+              ? { ...m, content: m.content + chunk }
               : m
           ),
         }));
+      }
 
-        if (i >= responseText.length) {
-          clearInterval(interval);
-          setLoading((prev) => ({ ...prev, [tab]: false }));
-        }
-      }, 18);
-    }, 420);
+      setSignals((prev) => ({ ...prev, [tab]: "completed" }));
+
+      // Auto-reset signal to idle after 2.4 s
+      setTimeout(() => {
+        setSignals((prev) => (prev[tab] === "completed" ? { ...prev, [tab]: "idle" } : prev));
+      }, 2400);
+
+    } catch (err) {
+      console.error("Stream error", err);
+
+      // Write inline error into the assistant placeholder
+      setMessages((prev) => ({
+        ...prev,
+        [tab]: prev[tab].map((m) =>
+          m.id === assistantId
+            ? { ...m, content: "Error — please try again." }
+            : m
+        ),
+      }));
+
+      setSignals((prev) => ({ ...prev, [tab]: "error" }));
+
+      setTimeout(() => {
+        setSignals((prev) => (prev[tab] === "error" ? { ...prev, [tab]: "idle" } : prev));
+      }, 2400);
+
+    } finally {
+      setLoading((prev) => ({ ...prev, [tab]: false }));
+    }
   }, [activeTab]);
 
   return (
@@ -78,6 +122,7 @@ export default function RuberraShell() {
         <SideRail
           activeTab={activeTab}
           messages={messages}
+          signals={signals}
         />
         <MainSurface
           activeTab={activeTab}
@@ -89,24 +134,3 @@ export default function RuberraShell() {
     </div>
   );
 }
-
-const SIMULATED_RESPONSES: Record<Tab, string[]> = {
-  lab: [
-    "Analyzing the problem space. The key variables here are constrained by the underlying model — let me reason through the edge cases systematically.",
-    "That's an interesting hypothesis. If we hold the first assumption constant and vary the second, the output diverges in a non-linear way around the boundary condition.",
-    "Let me think through this step by step. The first principle here is that complexity compounds — so the cleanest path is to isolate variables before drawing conclusions.",
-    "The reasoning checks out up to the third inference. The fourth step introduces a hidden dependency that may invalidate the chain if the source data has noise above 12%.",
-  ],
-  school: [
-    "Great question. The core concept here builds on three foundational ideas — let me unpack each one before connecting them to your specific case.",
-    "This is a common point of confusion. The distinction is subtle but important: the first term describes a process, while the second describes a state. They're related but not interchangeable.",
-    "Think of it this way: the underlying mechanism is like a feedback loop. Once you understand that the output feeds back into the input, the rest of the behavior becomes predictable.",
-    "You're on the right track. The gap in your reasoning is around the boundary condition — what happens when the input approaches zero? That's where the model reveals its true structure.",
-  ],
-  creation: [
-    "Here's a strong structural approach for this: start with the invariant core, define the interfaces, then let the implementation details follow from the constraints rather than leading them.",
-    "The rough shape looks solid. Two things to tighten before shipping: the error boundary around the async path, and the fallback state when the data source returns empty.",
-    "I'd push back slightly on the naming — the function does more than its name implies, which will create maintenance confusion at scale. Consider splitting it at the seam where the behavior changes.",
-    "That pattern works. One refinement: instead of threading the callback three levels deep, lift the shared state one level and pass a stable reference down. It'll simplify testing significantly.",
-  ],
-};
