@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 :root {
-  /* Mineral shell tokens */
   --ruberra-bg:      #0a0a0c;
   --ruberra-surface: #111116;
   --ruberra-rail:    #0e0e12;
@@ -12,25 +11,6 @@
   --ruberra-subtext: #7a7a90;
   --ruberra-accent:  #6c63ff;
   --ruberra-pulse:   #22c55e;
-
-  /* Terminal regime tokens — rt namespace, Lab inset only */
-  /* Warm charcoal ground — not black, earned depth */
-  --rt-bg:          #1c1a17;
-  --rt-surface:     #231f1a;
-  --rt-border:      #2e2922;
-  --rt-border-dash: #3a3228;
-  /* Mono-first text */
-  --rt-text:        #d4cfc6;
-  --rt-subtext:     #7a7062;
-  --rt-dim:         #4a4438;
-  /* Copper/amber accent system */
-  --rt-copper:      #b5651d;
-  --rt-amber:       #c8922a;
-  --rt-amber-glow:  #d4a843;
-  /* Status semantics */
-  --rt-ok:          #6b9e6b;
-  --rt-warn:        #b59a3a;
-  --rt-err:         #9e5a5a;
 }
 
 * {
