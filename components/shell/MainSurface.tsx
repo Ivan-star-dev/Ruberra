@@ -7,8 +7,8 @@ import LabCodeOrgan      from "../lab/LabCodeOrgan";
 import LabArchive        from "../lab/LabArchive";
 import SchoolLibrary     from "../school/SchoolLibrary";
 import SchoolArchive     from "../school/SchoolArchive";
-import CreationTerminal  from "../creation/CreationTerminal";
-import CreationArchive   from "../creation/CreationArchive";
+import CreationSurface  from "../creation/CreationSurface";
+import CreationArchive  from "../creation/CreationArchive";
 
 interface MainSurfaceProps {
   activeTab:     Tab;
@@ -52,10 +52,13 @@ export default function MainSurface({
   }
 
   /* ── Creation routing ────────────────────────────────────── */
+  /* Creation "chat" view maps to the canonical CreationSurface (output card grammar).
+     The old CreationTerminal (rt-* dark forge) is removed from the default flow.
+     "terminal" view retains CreationSurface — the canon IS the build surface. */
   if (activeTab === "creation") {
-    if (creationView === "terminal") return <CreationTerminal messages={messages} isLoading={isLoading} onSend={onSend} />;
     if (creationView === "archive")  return <CreationArchive messages={messages} />;
-    /* creationView === "chat" falls through */
+    /* "chat" and "terminal" both route to canonical CreationSurface */
+    return <CreationSurface messages={messages} isLoading={isLoading} onSend={onSend} />;
   }
 
   /* ── Shared chat surface ─────────────────────────────────── */
