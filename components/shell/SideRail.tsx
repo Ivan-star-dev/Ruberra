@@ -6,12 +6,13 @@ import { type Tab, type Message, type SignalStatus } from "./types";
 const ALL_TABS: Tab[] = ["lab", "school", "creation"];
 
 interface SideRailProps {
-  activeTab: Tab;
-  messages:  Record<Tab, Message[]>;
-  signals:   Record<Tab, SignalStatus>;
+  activeTab:  Tab;
+  messages:   Record<Tab, Message[]>;
+  signals:    Record<Tab, SignalStatus>;
+  onClearTab: (tab: Tab) => void;
 }
 
-export default function SideRail({ activeTab, messages, signals }: SideRailProps) {
+export default function SideRail({ activeTab, messages, signals, onClearTab }: SideRailProps) {
   const currentMessages    = messages[activeTab];
   const completedResponses = currentMessages.filter(
     (m) => m.role === "assistant" && m.content.length > 0
@@ -41,7 +42,7 @@ export default function SideRail({ activeTab, messages, signals }: SideRailProps
         )}
       </section>
 
-      {/* History */}
+      {/* History — with per-tab clear */}
       <section className="px-3 pt-4 pb-4 border-b border-ruberra-border">
         <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-ruberra-subtext mb-2 select-none px-1">
           History
@@ -54,15 +55,29 @@ export default function SideRail({ activeTab, messages, signals }: SideRailProps
               <li
                 key={tab}
                 className={[
-                  "flex items-center justify-between h-6 px-2 rounded text-xs transition-colors",
+                  "group flex items-center justify-between h-6 px-2 rounded text-xs transition-colors",
                   isActive
                     ? "text-ruberra-text bg-ruberra-border"
                     : "text-ruberra-subtext hover:bg-ruberra-border/60",
                 ].join(" ")}
               >
                 <span className="capitalize">{tab}</span>
-                <span className={isActive ? "text-ruberra-accent font-medium" : "text-ruberra-muted"}>
-                  {count > 0 ? String(count) : "—"}
+                <span className="flex items-center gap-1">
+                  <span className={isActive ? "text-ruberra-accent font-medium" : "text-ruberra-muted"}>
+                    {count > 0 ? String(count) : "—"}
+                  </span>
+                  {count > 0 && (
+                    <button
+                      onClick={() => onClearTab(tab)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-ruberra-muted hover:text-ruberra-text leading-none"
+                      aria-label={`Clear ${tab} session`}
+                      title={`Clear ${tab}`}
+                    >
+                      <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                        <path d="M2 2l6 6M8 2L2 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  )}
                 </span>
               </li>
             );

@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, type KeyboardEvent } from "react";
 import { type Tab, type Message } from "./types";
 
 interface MainSurfaceProps {
-  activeTab: Tab;
-  messages:  Message[];
-  isLoading: boolean;
-  onSend:    (text: string) => void;
-  onCancel:  () => void;
+  activeTab:     Tab;
+  messages:      Message[];
+  isLoading:     boolean;
+  draft:         string;
+  onDraftChange: (text: string) => void;
+  onSend:        (text: string) => void;
+  onCancel:      () => void;
 }
 
 const CHAMBER: Record<Tab, { glyph: string; name: string; tagline: string }> = {
@@ -23,12 +25,13 @@ export default function MainSurface({
   activeTab,
   messages,
   isLoading,
+  draft,
+  onDraftChange,
   onSend,
   onCancel,
 }: MainSurfaceProps) {
-  const [draft,  setDraft]  = useState("");
-  const threadRef            = useRef<HTMLDivElement>(null);
-  const textareaRef          = useRef<HTMLTextAreaElement>(null);
+  const threadRef   = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { glyph, name, tagline } = CHAMBER[activeTab];
 
   const execStatus: ExecStatus = !isLoading
@@ -39,17 +42,35 @@ export default function MainSurface({
     ? "streaming"
     : "thinking";
 
+  // Auto-scroll thread on new content
   useEffect(() => {
     const el = threadRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
+  // Auto-resize textarea
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [draft]);
+
+  // Keyboard shortcuts: Escape → cancel stream; Cmd/Ctrl+K → focus input
+  useEffect(() => {
+    function onKeyDown(e: globalThis.KeyboardEvent) {
+      if (e.key === "Escape" && isLoading) {
+        onCancel();
+        return;
+      }
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        textareaRef.current?.focus();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isLoading, onCancel]);
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -61,7 +82,7 @@ export default function MainSurface({
   function submit() {
     const text = draft.trim();
     if (!text || isLoading) return;
-    setDraft("");
+    onDraftChange("");
     onSend(text);
   }
 
@@ -131,7 +152,7 @@ export default function MainSurface({
             ref={textareaRef}
             rows={1}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => onDraftChange(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isLoading}
             placeholder={`Ask ${name}…`}
@@ -155,7 +176,7 @@ export default function MainSurface({
           </button>
         </div>
         <p className="text-ruberra-muted text-xs mt-2 ml-1 select-none">
-          Enter to send · Shift+Enter for newline
+          Enter to send · Shift+Enter for newline · Esc to stop · ⌘K to focus
         </p>
       </div>
     </main>

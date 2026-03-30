@@ -9,6 +9,7 @@ import { type Tab, type Message, type SignalStatus } from "./types";
 type TabMessages = Record<Tab, Message[]>;
 type TabLoading  = Record<Tab, boolean>;
 type TabSignals  = Record<Tab, SignalStatus>;
+type TabDrafts   = Record<Tab, string>;
 
 const TABS: Tab[] = ["lab", "school", "creation"];
 
@@ -17,7 +18,7 @@ function emptyRecord<T>(value: T): Record<Tab, T> {
 }
 
 const STORAGE_KEY = "ruberra_messages";
-const MAX_CONTEXT = 20; // max messages sent to API per tab
+const MAX_CONTEXT = 20;
 
 function loadMessages(): TabMessages {
   if (typeof window === "undefined") return emptyRecord<Message[]>([]);
@@ -25,7 +26,6 @@ function loadMessages(): TabMessages {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as TabMessages;
-      // Validate shape
       if (TABS.every((t) => Array.isArray(parsed[t]))) return parsed;
     }
   } catch { /* corrupt storage — ignore */ }
@@ -37,12 +37,12 @@ export default function RuberraShell() {
   const [messages,  setMessages]  = useState<TabMessages>(loadMessages);
   const [loading,   setLoading]   = useState<TabLoading>(emptyRecord(false));
   const [signals,   setSignals]   = useState<TabSignals>(emptyRecord<SignalStatus>("idle"));
+  // Per-tab draft state — preserved independently when switching chambers
+  const [drafts,    setDrafts]    = useState<TabDrafts>(emptyRecord(""));
 
-  // Ref mirror to avoid stale closures in async callbacks
   const messagesRef = useRef<TabMessages>(messages);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
-  // Per-tab AbortControllers
   const abortRefs = useRef<Record<Tab, AbortController | null>>(
     emptyRecord<AbortController | null>(null)
   );
@@ -52,7 +52,7 @@ export default function RuberraShell() {
     const timer = setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-      } catch { /* storage full or unavailable — ignore */ }
+      } catch { /* storage full — ignore */ }
     }, 500);
     return () => clearTimeout(timer);
   }, [messages]);
@@ -60,6 +60,23 @@ export default function RuberraShell() {
   const handleCancel = useCallback(() => {
     abortRefs.current[activeTab]?.abort();
   }, [activeTab]);
+
+  const handleDraftChange = useCallback((text: string) => {
+    setDrafts((prev) => ({ ...prev, [activeTab]: text }));
+  }, [activeTab]);
+
+  const handleClearTab = useCallback((tab: Tab) => {
+    setMessages((prev) => ({ ...prev, [tab]: [] }));
+    // Clear persisted storage for this tab immediately
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as TabMessages;
+        parsed[tab] = [];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   const handleSend = useCallback(async (text: string) => {
     const tab = activeTab;
@@ -91,7 +108,6 @@ export default function RuberraShell() {
     }));
 
     try {
-      // Context trimming: send at most MAX_CONTEXT messages (excluding the empty placeholder)
       const history = messagesRef.current[tab]
         .filter((m) => m.id !== assistantId)
         .slice(-MAX_CONTEXT)
@@ -109,16 +125,20 @@ export default function RuberraShell() {
       const reader  = res.body.getReader();
       const decoder = new TextDecoder();
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        setMessages((prev) => ({
-          ...prev,
-          [tab]: prev[tab].map((m) =>
-            m.id === assistantId ? { ...m, content: m.content + chunk } : m
-          ),
-        }));
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          setMessages((prev) => ({
+            ...prev,
+            [tab]: prev[tab].map((m) =>
+              m.id === assistantId ? { ...m, content: m.content + chunk } : m
+            ),
+          }));
+        }
+      } finally {
+        reader.releaseLock();
       }
 
       setSignals((prev) => ({ ...prev, [tab]: "completed" }));
@@ -132,7 +152,6 @@ export default function RuberraShell() {
       const isAbort = err instanceof Error && err.name === "AbortError";
 
       if (isAbort) {
-        // Stream cancelled — leave whatever partial content streamed; don't write an error
         setSignals((prev) => ({ ...prev, [tab]: "idle" }));
       } else {
         console.error("Stream error", err);
@@ -166,11 +185,14 @@ export default function RuberraShell() {
           activeTab={activeTab}
           messages={messages}
           signals={signals}
+          onClearTab={handleClearTab}
         />
         <MainSurface
           activeTab={activeTab}
           messages={messages[activeTab]}
           isLoading={loading[activeTab]}
+          draft={drafts[activeTab]}
+          onDraftChange={handleDraftChange}
           onSend={handleSend}
           onCancel={handleCancel}
         />
