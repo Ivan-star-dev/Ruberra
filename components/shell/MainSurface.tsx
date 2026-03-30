@@ -31,7 +31,7 @@ const CHAMBER: Record<Tab, {
     statusLabel: "SCHOOL",
   },
   creation: {
-    placeholder: "Ask anything…",
+    placeholder: "Describe what to build, write, or generate…",
     emptyTitle: "Creation",
     emptySubtitle: "Output engine. Directive in, artifact out.",
     statusLabel: "CREATION",
@@ -81,7 +81,60 @@ function ChamberGlyph({ tab }: { tab: Tab }) {
   );
 }
 
+function CreationEmptyState() {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-0 select-none pb-16 px-8">
+      {/* Studio panel */}
+      <div
+        className="w-full max-w-[400px] rounded-xl overflow-hidden"
+        style={{ border: "1px solid #d4e8dd", background: "#f8faf9" }}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center gap-2 px-5 py-3"
+          style={{ borderBottom: "1px solid #d4e8dd", background: "#f0f7f3" }}
+        >
+          <span className="font-mono text-[10px] text-[#3d9b6e] select-none">●</span>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#2d7a56] select-none">
+            Creation Studio
+          </span>
+          <span className="ml-auto font-mono text-[9px] text-[#3d9b6e]/50 select-none">ready</span>
+        </div>
+        {/* Status rows */}
+        <div className="px-5 py-3 space-y-2">
+          {[
+            { label: "Output type",  value: "Prose",    tone: "#3d9b6e"  },
+            { label: "Tone",         value: "Precise",  tone: "#2d7a56"  },
+            { label: "Length",       value: "Standard", tone: "#2d7a56"  },
+            { label: "Status",       value: "Awaiting directive", tone: "#b8b5ae" },
+          ].map((row) => (
+            <div key={row.label} className="flex items-center gap-3">
+              <span className="text-[11px] font-medium w-24 shrink-0" style={{ color: "#8a8780" }}>{row.label}</span>
+              <span className="font-mono text-[11px]" style={{ color: row.tone }}>{row.value}</span>
+            </div>
+          ))}
+        </div>
+        {/* Progress placeholder */}
+        <div className="px-5 pb-3">
+          <div className="flex gap-0.5">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex-1 h-1" style={{ background: "#e2e0dc", borderRadius: "2px" }} />
+            ))}
+          </div>
+          <p className="text-[9.5px] font-mono mt-1.5 select-none" style={{ color: "#b8b5ae" }}>
+            0/6 phases complete
+          </p>
+        </div>
+      </div>
+      <p className="text-[11.5px] text-ruberra-muted/70 mt-4 text-center max-w-[280px] leading-relaxed">
+        Describe what you need built, written, or generated.
+      </p>
+    </div>
+  );
+}
+
 function EmptyState({ tab }: { tab: Tab }) {
+  if (tab === "creation") return <CreationEmptyState />;
   const { emptyTitle, emptySubtitle } = CHAMBER[tab];
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-2.5 select-none pb-16">
@@ -144,8 +197,8 @@ function MessageBubble({ msg, turnIndex }: { msg: Message; turnIndex: number }) 
           style={{ boxShadow: "0 1px 3px rgba(26,25,22,0.07), 0 0 0 1px #e2e0dc" }}
         >
           <ResponseHeader tab={msg.tab} turn={turnIndex} streaming={msg.streaming} />
-          <div className="px-4 py-3.5">
-            <RenderedOutput content={msg.content} streaming={msg.streaming} />
+          <div className={msg.tab === "creation" ? "px-4 py-4" : "px-4 py-3.5"}>
+            <RenderedOutput content={msg.content} streaming={msg.streaming} tab={msg.tab} />
           </div>
         </div>
       )}
