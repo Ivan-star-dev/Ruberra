@@ -5,6 +5,7 @@ import TopBar from "./TopBar";
 import SideRail from "./SideRail";
 import MainSurface from "./MainSurface";
 import { type Tab, type Message, type SignalStatus } from "./types";
+import { parseBlocks } from "@/lib/parseBlocks";
 
 type TabMessages = Record<Tab, Message[]>;
 type TabLoading  = Record<Tab, boolean>;
@@ -78,6 +79,17 @@ export default function RuberraShell() {
     } catch { /* ignore */ }
   }, []);
 
+  const applyParsedBlocks = useCallback((id: string, tab: Tab) => {
+    setMessages((prev) => ({
+      ...prev,
+      [tab]: prev[tab].map((m) => {
+        if (m.id !== id || m.role !== "assistant") return m;
+        const blocks = parseBlocks(m.content);
+        return blocks.length > 0 ? { ...m, blocks } : m;
+      }),
+    }));
+  }, []);
+
   const handleSend = useCallback(async (text: string) => {
     const tab = activeTab;
 
@@ -106,6 +118,8 @@ export default function RuberraShell() {
         { id: assistantId, role: "assistant", content: "", timestamp: Date.now() },
       ],
     }));
+
+    let parseOnComplete = true;
 
     try {
       const history = messagesRef.current[tab]
@@ -152,8 +166,10 @@ export default function RuberraShell() {
       const isAbort = err instanceof Error && err.name === "AbortError";
 
       if (isAbort) {
+        parseOnComplete = false;
         setSignals((prev) => ({ ...prev, [tab]: "idle" }));
       } else {
+        parseOnComplete = false;
         console.error("Stream error", err);
         setMessages((prev) => ({
           ...prev,
@@ -174,8 +190,11 @@ export default function RuberraShell() {
     } finally {
       setLoading((prev) => ({ ...prev, [tab]: false }));
       abortRefs.current[tab] = null;
+      if (parseOnComplete) {
+        applyParsedBlocks(assistantId, tab);
+      }
     }
-  }, [activeTab]);
+  }, [activeTab, applyParsedBlocks]);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-ruberra-bg overflow-hidden">

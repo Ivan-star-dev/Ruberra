@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import { type Tab, type Message } from "./types";
+import { BlockRenderer } from "./blocks";
 
 interface MainSurfaceProps {
   activeTab:     Tab;
@@ -186,6 +187,21 @@ export default function MainSurface({
 function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
 
+  // Parsed structured response — render block engine
+  if (!isUser && message.blocks && message.blocks.length > 0) {
+    return (
+      <div className="flex justify-start">
+        <div className="max-w-[72%] w-full">
+          <BlockRenderer blocks={message.blocks} />
+        </div>
+      </div>
+    );
+  }
+
+  // Structured format detected during streaming — content not yet parsed
+  const isStructuredPending =
+    !isUser && !message.blocks && message.content.startsWith("TYPE:");
+
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
@@ -196,7 +212,11 @@ function MessageBubble({ message }: { message: Message }) {
             : "bg-white border border-ruberra-border text-ruberra-text rounded-bl-sm",
         ].join(" ")}
       >
-        {message.content || (
+        {isStructuredPending ? (
+          <span className="text-ruberra-muted italic">Composing response…</span>
+        ) : message.content ? (
+          message.content
+        ) : (
           <span className="inline-flex gap-0.5 items-center h-4">
             {[0, 1, 2].map((i) => (
               <span
