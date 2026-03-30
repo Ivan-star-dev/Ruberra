@@ -1,52 +1,49 @@
 /**
  * Metamorphic Output Block system.
  *
- * Contract:
- *   Assistant responses may contain zero or more typed blocks using a
- *   lightweight fence syntax:
- *
- *     ```block:<type>
- *     ...content...
- *     ```
- *
- *   Everything outside a fence is treated as a prose block.
- *   The parser is non-destructive — unrecognized fences fall through as prose.
- *
  * Supported block types:
  *   prose      — plain paragraph text (default, implicit)
  *   code       — monospace code with optional language tag
- *   steps      — numbered sequential steps (School chamber)
- *   checklist  — checkbox items (Creation chamber)
- *   insight    — highlighted callout (Lab chamber)
+ *   verdict    — prominent conclusion/decision callout (Lab)
+ *   insight    — secondary highlighted finding (Lab/School)
+ *   steps      — numbered sequential steps (School/Creation)
+ *   checklist  — checkbox task items (Creation)
  *   table      — compact key/value rows
- *   status     — named status rows with optional indicator
+ *   status     — named status rows with state indicator
+ *   progress   — labeled progress bars (Lab/Creation)
  */
 
 export type BlockType =
   | "prose"
   | "code"
+  | "verdict"
+  | "insight"
   | "steps"
   | "checklist"
-  | "insight"
   | "table"
-  | "status";
+  | "status"
+  | "progress";
 
-export interface ProseBlock   { type: "prose";     text: string }
-export interface CodeBlock    { type: "code";      lang: string; text: string }
-export interface StepsBlock   { type: "steps";     items: string[] }
+export interface ProseBlock     { type: "prose";    text: string }
+export interface CodeBlock      { type: "code";     lang: string; text: string }
+export interface VerdictBlock   { type: "verdict";  text: string }
+export interface InsightBlock   { type: "insight";  text: string }
+export interface StepsBlock     { type: "steps";    items: string[] }
 export interface ChecklistBlock { type: "checklist"; items: { done: boolean; text: string }[] }
-export interface InsightBlock { type: "insight";   text: string }
-export interface TableBlock   { type: "table";     rows: { key: string; value: string }[] }
-export interface StatusBlock  { type: "status";    rows: { label: string; state: "ok" | "warn" | "err" | "info" }[] }
+export interface TableBlock     { type: "table";    rows: { key: string; value: string }[] }
+export interface StatusBlock    { type: "status";   rows: { label: string; state: "ok" | "warn" | "err" | "info" }[] }
+export interface ProgressBlock  { type: "progress"; rows: { label: string; value: number }[] }
 
 export type OutputBlock =
   | ProseBlock
   | CodeBlock
+  | VerdictBlock
+  | InsightBlock
   | StepsBlock
   | ChecklistBlock
-  | InsightBlock
   | TableBlock
-  | StatusBlock;
+  | StatusBlock
+  | ProgressBlock;
 
 // ---------------------------------------------------------------------------
 // Parser
@@ -133,6 +130,9 @@ function parseTypedBody(type: BlockType, body: string): OutputBlock[] {
       return [{ type: "checklist", items }];
     }
 
+    case "verdict":
+      return [{ type: "verdict", text: body }];
+
     case "insight":
       return [{ type: "insight", text: body }];
 
@@ -157,6 +157,17 @@ function parseTypedBody(type: BlockType, body: string): OutputBlock[] {
         return { state: "info" as const, label: l.trim() };
       });
       return [{ type: "status", rows }];
+    }
+
+    case "progress": {
+      const rows = body.split("\n").filter(Boolean).map((l) => {
+        const sep = l.lastIndexOf(":");
+        if (sep === -1) return { label: l.trim(), value: 0 };
+        const raw = l.slice(sep + 1).trim();
+        const value = Math.min(100, Math.max(0, parseInt(raw, 10) || 0));
+        return { label: l.slice(0, sep).trim(), value };
+      });
+      return [{ type: "progress", rows }];
     }
 
     case "code":
