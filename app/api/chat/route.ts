@@ -13,12 +13,46 @@ interface RequestBody {
 }
 
 const SYSTEM_PROMPTS: Record<string, string> = {
-  lab:
-    "You are a rigorous analytical intelligence inside Ruberra Lab. Think carefully, reason precisely, and expose hidden structure in problems. Be concise and substantive. No filler.",
-  school:
-    "You are a clear, patient teacher inside Ruberra School. Explain concepts from first principles, correct misconceptions directly, and build understanding step by step. Be warm but precise.",
-  creation:
-    "You are a senior builder inside Ruberra Creation. Help design, write, and construct real things. Push back on weak architecture, suggest concrete improvements, and think in systems. Be direct.",
+  lab: `You are a rigorous analytical intelligence inside Ruberra Lab. Think carefully, reason precisely, and expose hidden structure in problems. Be concise and substantive. No filler.
+
+When your response is analytical or evaluative, structure it using these block types:
+
+TYPE:verdict — for conclusions, audit results, final judgments
+TYPE:report  — for multi-finding analyses with a status per row
+
+Block format:
+TYPE:verdict
+TITLE:<title>
+STATUS:<pass|partial|fail|warn>
+SECTION:<heading>
+- <item> | <value> | <status>
+NEXT:<action>
+
+For conversational or simple factual questions, respond in plain prose — do not force structure where it adds no value.`,
+
+  school: `You are a clear, patient teacher inside Ruberra School. Explain concepts from first principles, correct misconceptions directly, and build understanding step by step. Be warm but precise.
+
+When explaining a concept, topic, or learning path, structure it using:
+
+TYPE:lesson
+TITLE:<topic>
+PROGRESS:<n/total> (include when tracking a learning arc)
+SECTION:<section>
+- <item> | <detail> | <done|current|pending|locked>
+NEXT:<next learning step>
+
+Use STATUS: done for mastered items, current for the active step, pending for upcoming, locked for prerequisites not yet met.
+For conversational or simple questions, respond in plain prose.`,
+
+  creation: `You are a senior builder inside Ruberra Creation. Help design, write, and construct real things. Push back on weak architecture, suggest concrete improvements, and think in systems. Be direct.
+
+When responding to a build, design, or review request, structure it using:
+
+TYPE:execution — for step-by-step plans with per-step state
+TYPE:creation  — for architecture, specifications, or artifact output
+
+Per-step status: done / running / pending / fail
+For conversational questions, respond in plain prose.`,
 };
 
 const FALLBACK_RESPONSES: Record<string, string[]> = {
@@ -27,72 +61,95 @@ const FALLBACK_RESPONSES: Record<string, string[]> = {
 TITLE:Analysis Complete
 STATUS:pass
 SECTION:Key Findings
-- Primary constraint identified | boundary condition | done
-- Edge case present | non-linear divergence above threshold | warn
-- Hidden dependency at inference step 4 | source data noise risk | warn
-SECTION:Confidence Assessment
+- Primary constraint identified | boundary condition enforced | done
+- Non-linear divergence detected | above threshold at step 4 | warn
+- Hidden dependency chain | source data sensitivity risk | warn
+SECTION:Confidence
 - Core reasoning chain | sound through step 3 | pass
-- Step 4 dependency | unvalidated | partial
-NEXT:Isolate the step-4 dependency before drawing final conclusions.`,
-    "That's an interesting hypothesis. If we hold the first assumption constant and vary the second, the output diverges in a non-linear way around the boundary condition.",
+- Step 4 onward | conditional on noise floor | partial
+NEXT:Isolate the step-4 dependency before finalizing the conclusion.
+
+TYPE:signal
+TITLE:PULSE
+SECTION:Meta
+- Confidence | High | pass
+- Phase | Analysis | running
+- Next | Dependency check | warn`,
+
+    "That's an interesting hypothesis. If we hold the first assumption constant and vary the second, the output diverges in a non-linear way around the boundary condition. The non-linearity matters because it means **small perturbations in the input produce disproportionate output variance** — which is exactly where naive models fail.",
+
     `TYPE:report
 TITLE:Reasoning Audit
 STATUS:partial
 SECTION:Findings
-- First principle holds | no contradictions | pass
-- Second inference | introduces assumed linearity | warn
-- Third step | dependent on noise floor below 12% | pending
+- First principle | no contradictions | pass
+- Second inference | assumes linearity without justification | warn
+- Third step | dependent on noise floor < 12% | pending
 - Conclusion validity | conditional on noise assumption | partial
-NEXT:Verify source data noise characteristics before accepting conclusion.`,
-    "Let me think through this step by step. The first principle here is that complexity compounds — so the cleanest path is to isolate variables before drawing conclusions.",
+NEXT:Verify source data noise characteristics before accepting the conclusion chain.`,
+
+    "The reasoning checks out up to step three. The cleanest path forward is to isolate variables before drawing conclusions — complexity compounds, and the fourth inference introduces a dependency that isn't yet validated.",
   ],
+
   school: [
     `TYPE:lesson
 TITLE:Core Concept Map
-STATUS:current
 PROGRESS:1/3 complete
 SECTION:Module Sequence
 - Foundational mechanism | feedback loop model | done
-- State vs process distinction | | current
+- State vs process distinction | subtle but critical | current
 - Boundary condition behavior | what happens as input → 0 | locked
-NEXT:Master the state/process distinction before moving to boundary conditions.`,
-    "This is a common point of confusion. The distinction is subtle but important: the first term describes a process, while the second describes a state. They're related but not interchangeable.",
+NEXT:Master the state/process distinction — it unlocks the boundary condition analysis.`,
+
+    "This is a common point of confusion. The distinction is subtle but important: the first term describes a **process** (ongoing transformation), while the second describes a **state** (a snapshot in time). They're related but not interchangeable — conflating them produces reasoning errors at scale.",
+
     `TYPE:lesson
 TITLE:Understanding Check
 STATUS:pass
 SECTION:What You Have Right
 - Core mechanism identified | feedback loop | done
-- Output-input relationship | understood | done
+- Output-to-input relationship | understood correctly | done
 SECTION:Gap to Close
 - Boundary condition | behavior at zero not yet modeled | current
-- Edge case handling | not yet covered | locked
-NEXT:Work through what happens when the input approaches zero — that's where structure reveals itself.`,
-    "You're on the right track. The gap in your reasoning is around the boundary condition — what happens when the input approaches zero? That's where the model reveals its true structure.",
+- Edge case handling | depends on boundary analysis | locked
+NEXT:Work through what happens when the input approaches zero — that's where the model reveals its structure.`,
+
+    "You're on the right track. The gap is around the boundary condition — what happens when the input approaches zero? That's where the model's true behavior becomes visible, and where most intuitive predictions break down.",
   ],
+
   creation: [
     `TYPE:execution
 TITLE:Build Plan
 STATUS:live
 SECTION:Steps
-- Define invariant core and interfaces | before implementation | done
-- Implement against constraints | not leading with details | running
-- Add error boundary around async path | | pending
-- Handle empty data source fallback | | pending
-NEXT:Get the interface contract locked before touching implementation details.`,
-    "The rough shape looks solid. Two things to tighten before shipping: the error boundary around the async path, and the fallback state when the data source returns empty.",
+- Define invariant core and interface contract | before any implementation | done
+- Implement against constraints | let constraints drive, not details | running
+- Add error boundary around async path | required before any IO | pending
+- Handle empty data source state | fallback must be explicit | pending
+NEXT:Lock the interface contract before touching implementation.
+
+TYPE:signal
+TITLE:PULSE
+SECTION:Meta
+- Phase | Implementation | running
+- Blocking | Error boundary | warn
+- Next | Async path first | warn`,
+
+    "The rough shape looks solid. Two things to tighten before shipping: the **error boundary around the async path** (currently unhandled), and the **fallback state when the data source returns empty** — both are likely failure modes in production.",
+
     `TYPE:creation
 TITLE:Architecture Review
 STATUS:partial
-TAGS:refactor, naming, state
-SECTION:Parameters
-- Function scope | exceeds implied contract | warn
-- Callback depth | 3 levels deep | warn
+SECTION:Issues
+- Function scope | exceeds its implied contract | warn
+- Callback depth | threaded 3 levels deep | warn
 - State ownership | split between caller and callee | partial
 SECTION:Recommended Changes
-- Split function at behavior seam | two focused functions | pending
+- Split at behavior seam | two focused functions | pending
 - Lift shared state one level | pass stable reference down | pending
-NEXT:Rename + split first, then lift state — in that order.`,
-    "That pattern works. One refinement: instead of threading the callback three levels deep, lift the shared state one level and pass a stable reference down. It'll simplify testing significantly.",
+NEXT:Rename and split first, then lift state. Order matters here.`,
+
+    "That pattern works. One refinement: instead of threading the callback three levels deep, **lift the shared state one level** and pass a stable reference down. It simplifies testing significantly and removes the implicit coupling between the layers.",
   ],
 };
 
