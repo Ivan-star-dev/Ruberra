@@ -22,6 +22,9 @@ const config: Config = {
           pulse:        "#3d9b6e",
           "user-bubble": "#e8e6e2",
           "asst-bubble": "#ffffff",
+          nav:          "#1c1b19",
+          "nav-icon":   "#6b6864",
+          "nav-active": "#e2e0dc",
         },
       },
       fontFamily: {

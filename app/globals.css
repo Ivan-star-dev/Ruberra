@@ -25,6 +25,11 @@
   /* Bubble tones */
   --ruberra-user-bubble:  #e8e6e2;
   --ruberra-asst-bubble:  #ffffff;
+
+  /* Figma — dark icon nav rail */
+  --ruberra-nav:      #1c1b19;
+  --ruberra-nav-icon: #6b6864;
+  --ruberra-nav-active: #e2e0dc;
 }
 
 * {
