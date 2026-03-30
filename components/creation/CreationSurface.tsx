@@ -198,24 +198,8 @@ export default function CreationSurface({ messages, isLoading, onSend }: Creatio
   return (
     <div className="flex-1 flex flex-col min-h-0" style={{ backgroundColor: "var(--r-bg)" }}>
 
-      {/* ── Chamber header ─────────────────────────────────── */}
-      <div className="flex items-center justify-between px-6 pt-4 pb-2 shrink-0">
-        <span className="font-mono text-[10px] uppercase tracking-widest font-semibold"
-          style={{ color: "var(--r-subtext)" }}>
-          Creation
-        </span>
-        <div className="flex items-center gap-2">
-          {isLoading && <ActiveChip />}
-          {builds > 0 && !isLoading && (
-            <span className="font-mono text-[10px]" style={{ color: "var(--r-dim)" }}>
-              {builds} build{builds !== 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
-      </div>
-
       {/* ── Scrollable area ────────────────────────────────── */}
-      <div ref={threadRef} className="flex-1 overflow-y-auto px-6 pb-2">
+      <div ref={threadRef} className="flex-1 overflow-y-auto px-6 py-5">
 
         {/* Empty state — canonical template */}
         {!card && (
@@ -234,13 +218,18 @@ export default function CreationSurface({ messages, isLoading, onSend }: Creatio
 
       </div>
 
-      {/* ── Integrated input bar ───────────────────────────── */}
-      <div className="px-6 pb-5 pt-3 shrink-0 border-t" style={{ borderColor: "var(--r-border)" }}>
+      {/* ── Input bar ──────────────────────────────────────── */}
+      <div
+        className="shrink-0 border-t"
+        style={{ borderColor: "var(--r-border)", padding: "0 24px 20px" }}
+      >
+        {/* Input surface */}
         <div
-          className="flex items-end gap-3 px-4 py-3 border transition-colors duration-150"
+          className="flex items-end gap-3 border transition-colors duration-150"
           style={{
             backgroundColor: "var(--r-surface)",
-            borderColor:     "var(--r-border)",
+            borderColor:     isLoading ? "var(--r-border-soft)" : "var(--r-border)",
+            padding:         "10px 14px",
           }}
         >
           <textarea
@@ -250,27 +239,34 @@ export default function CreationSurface({ messages, isLoading, onSend }: Creatio
             onChange={e => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isLoading}
-            placeholder="Directive — describe what to build…"
-            className="flex-1 bg-transparent outline-none resize-none text-sm leading-relaxed disabled:opacity-40"
-            style={{ color: "var(--r-text)", minHeight: "24px", maxHeight: "160px" }}
+            placeholder="Describe what to build…"
+            className="flex-1 bg-transparent outline-none resize-none leading-relaxed disabled:opacity-40"
+            style={{
+              color:     "var(--r-text)",
+              fontSize:  "13px",
+              minHeight: "22px",
+              maxHeight: "160px",
+            }}
           />
           <button
             onClick={submit}
             disabled={!draft.trim() || isLoading}
-            className="text-xs font-mono px-3 py-1 border transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+            className="font-mono border transition-colors duration-150 disabled:opacity-25 disabled:cursor-not-allowed shrink-0"
             style={{
-              borderColor: "var(--r-border)",
-              color:       "var(--r-subtext)",
+              fontSize:        "10px",
+              borderColor:     "var(--r-border)",
+              color:           "var(--r-subtext)",
               backgroundColor: "var(--r-elevated)",
+              padding:         "3px 10px",
             }}
           >
             build
           </button>
         </div>
 
-        {/* Operational meta strip */}
-        <div className="flex items-center justify-between mt-1.5 px-0.5">
-          <span className="font-mono text-[10px]" style={{ color: "var(--r-dim)" }}>
+        {/* Footer meta */}
+        <div className="flex items-center justify-between mt-1.5" style={{ paddingLeft: "1px" }}>
+          <span className="font-mono" style={{ fontSize: "10px", color: "var(--r-dim)" }}>
             Enter to build · Shift+Enter for newline
           </span>
           <div className="flex items-center gap-3">
@@ -289,46 +285,68 @@ export default function CreationSurface({ messages, isLoading, onSend }: Creatio
 
 function EmptyOutputCard() {
   return (
-    <div className="mt-2 mb-4 border animate-panel-in"
-      style={{ borderColor: "var(--r-border)", backgroundColor: "var(--r-surface)" }}>
-
+    <div
+      className="mb-4 border animate-panel-in"
+      style={{ borderColor: "var(--r-border)", backgroundColor: "var(--r-surface)" }}
+    >
       {/* Card header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b"
-        style={{ borderColor: "var(--r-border-soft)" }}>
+      <div
+        className="flex items-center justify-between px-5 py-3 border-b"
+        style={{ borderColor: "var(--r-border-soft)" }}
+      >
         <div className="flex items-center gap-2.5">
           <BuildGlyph />
-          <span className="text-xs font-medium" style={{ color: "var(--r-text)" }}>
-            Output
+          <span
+            className="font-mono text-[10px] uppercase tracking-widest"
+            style={{ color: "var(--r-subtext)", letterSpacing: "0.08em" }}
+          >
+            Awaiting directive
           </span>
         </div>
-        <span className="font-mono text-[10px]" style={{ color: "var(--r-dim)" }}>
+        <span className="font-mono text-[9px]" style={{ color: "var(--r-dim)" }}>
           ready
         </span>
       </div>
 
-      {/* Progress bar — empty */}
+      {/* Progress track — uninitiated, no percentage label */}
       <div className="px-5 pt-4 pb-2">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="font-mono text-[10px] uppercase tracking-widest"
-            style={{ color: "var(--r-subtext)" }}>
+        <div className="flex items-center justify-between mb-2">
+          <span
+            className="font-mono text-[9px] uppercase tracking-widest"
+            style={{ color: "var(--r-dim)", letterSpacing: "0.08em" }}
+          >
             Deliverables
           </span>
-          <span className="font-mono text-[10px]" style={{ color: "var(--r-dim)" }}>
-            0%
-          </span>
         </div>
-        <ProgressBar pct={0} streaming={false} />
+        {/* Track only, no fill — uninitiated state */}
+        <div
+          className="h-px w-full"
+          style={{ backgroundColor: "var(--r-border)" }}
+        />
       </div>
 
-      {/* Placeholder checklist */}
-      <div className="px-5 pb-4 pt-1 space-y-2">
-        {["First deliverable", "Second deliverable", "Third deliverable"].map((label, i) => (
-          <ChecklistItem key={i} text={label} checked={false} placeholder />
+      {/* Skeleton checklist rows — visual grammar without fake text */}
+      <div className="px-5 pb-4 pt-3 space-y-3">
+        {[0.7, 0.5, 0.4].map((opacity, i) => (
+          <div key={i} className="flex items-center gap-2.5">
+            <span
+              className="w-3 h-3 shrink-0 border"
+              style={{ borderColor: "var(--r-border)", opacity }}
+            />
+            <span
+              className="h-2.5 rounded-sm"
+              style={{
+                width:           `${[52, 38, 44][i]}%`,
+                backgroundColor: "var(--r-border)",
+                opacity,
+              }}
+            />
+          </div>
         ))}
       </div>
 
-      {/* Phase strip */}
-      <PhaseStrip phase="ready" stepsRemaining={0} blocking="none" />
+      {/* Phase strip — show sequence only, no meta noise */}
+      <PhaseStrip phase="ready" stepsRemaining={0} blocking={null} />
     </div>
   );
 }
@@ -341,19 +359,26 @@ function OutputCardBlock({ card }: { card: OutputCard }) {
       style={{ borderColor: "var(--r-border)", backgroundColor: "var(--r-surface)" }}>
 
       {/* Card header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b"
-        style={{ borderColor: "var(--r-border-soft)" }}>
-        <div className="flex items-center gap-2.5 min-w-0">
+      <div
+        className="flex items-center justify-between px-5 border-b"
+        style={{ borderColor: "var(--r-border-soft)", minHeight: "44px" }}
+      >
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <BuildGlyph active={card.isStreaming} />
-          <span className="text-[10px] font-mono shrink-0"
-            style={{ color: "var(--r-dim)" }}>
-            build #{card.buildNum}
+          <span
+            className="font-mono shrink-0"
+            style={{ fontSize: "9px", color: "var(--r-dim)", letterSpacing: "0.05em" }}
+          >
+            #{card.buildNum}
           </span>
-          <span className="text-xs truncate" style={{ color: "var(--r-text)" }}>
-            {card.directive.slice(0, 64)}{card.directive.length > 64 ? "…" : ""}
+          <span
+            className="truncate"
+            style={{ fontSize: "12px", color: "var(--r-text)", fontWeight: 500 }}
+          >
+            {card.directive.slice(0, 72)}{card.directive.length > 72 ? "…" : ""}
           </span>
         </div>
-        {card.isStreaming && <ActiveChip inline />}
+        {card.isStreaming && <ActiveChip />}
       </div>
 
       {/* Body prose — if any, above deliverables */}
@@ -409,7 +434,7 @@ function OutputCardBlock({ card }: { card: OutputCard }) {
       <PhaseStrip
         phase={card.phase}
         stepsRemaining={card.deliverables.filter(d => !d.checked).length}
-        blocking="none"
+        blocking={null}
       />
     </div>
   );
@@ -538,65 +563,78 @@ function PhaseStrip({
 }: {
   phase:          BuildPhase;
   stepsRemaining: number;
-  blocking:       string;
+  blocking:       string | null;
 }) {
   const currentIdx = PHASE_SEQUENCE.indexOf(phase);
 
   return (
-    <div className="flex items-center gap-0 px-5 py-2.5 border-t"
-      style={{ borderColor: "var(--r-border-soft)", backgroundColor: "var(--r-elevated)" }}>
-
-      {/* Phase chips */}
-      <div className="flex items-center gap-1 flex-1 min-w-0">
+    <div
+      className="flex items-center px-5 py-2 border-t"
+      style={{ borderColor: "var(--r-border-soft)", backgroundColor: "var(--r-elevated)" }}
+    >
+      {/* Phase sequence */}
+      <div className="flex items-center flex-1 min-w-0">
         {PHASE_SEQUENCE.map((p, i) => {
           const isDone    = i < currentIdx;
           const isActive  = i === currentIdx;
           const isPending = i > currentIdx;
           return (
-            <span key={p}
-              className="font-mono text-[9px] px-1.5 py-0.5"
+            <span
+              key={p}
+              className="font-mono"
               style={{
-                color:           isDone   ? "var(--r-ok)" :
-                                 isActive ? "var(--r-text)" :
+                fontSize:        "9px",
+                color:           isDone   ? "var(--r-ok)"   :
+                                 isActive ? "var(--r-text)"  :
                                  "var(--r-dim)",
+                opacity:         isPending ? 0.45 : 1,
+                padding:         "1px 5px",
                 backgroundColor: isActive ? "var(--r-border)" : "transparent",
-                opacity:         isPending ? 0.5 : 1,
-              }}>
+              }}
+            >
               {PHASE_LABEL[p]}
               {i < PHASE_SEQUENCE.length - 1 && (
-                <span style={{ color: "var(--r-dim)", marginLeft: "4px" }}>›</span>
+                <span style={{ color: "var(--r-dim)", marginLeft: "3px" }}>›</span>
               )}
             </span>
           );
         })}
       </div>
 
-      {/* Meta */}
+      {/* Right meta — only shown when meaningful */}
       <div className="flex items-center gap-3 shrink-0">
         {stepsRemaining > 0 && (
-          <span className="font-mono text-[9px]" style={{ color: "var(--r-subtext)" }}>
-            {stepsRemaining} step{stepsRemaining !== 1 ? "s" : ""} remaining
+          <span className="font-mono" style={{ fontSize: "9px", color: "var(--r-subtext)" }}>
+            {stepsRemaining} remaining
           </span>
         )}
-        <span className="font-mono text-[9px]" style={{ color: "var(--r-dim)" }}>
-          blocking: {blocking}
-        </span>
+        {blocking && blocking !== "none" && (
+          <span className="font-mono" style={{ fontSize: "9px", color: "var(--r-warn)" }}>
+            blocking: {blocking}
+          </span>
+        )}
       </div>
     </div>
   );
 }
 
-function ActiveChip({ inline = false }: { inline?: boolean }) {
+function ActiveChip() {
   return (
     <span
-      className="font-mono text-[9px] px-2 py-0.5 flex items-center gap-1.5"
+      className="font-mono flex items-center gap-1.5 shrink-0"
       style={{
+        fontSize:        "9px",
         color:           "var(--r-ok)",
-        backgroundColor: "color-mix(in srgb, var(--r-ok) 12%, var(--r-surface))",
-        border:          "1px solid color-mix(in srgb, var(--r-ok) 30%, var(--r-border))",
-      }}>
-      <span className="w-1.5 h-1.5 rounded-full animate-pulse"
-        style={{ backgroundColor: "var(--r-ok)" }} />
+        backgroundColor: "color-mix(in srgb, var(--r-ok) 10%, var(--r-surface))",
+        border:          "1px solid color-mix(in srgb, var(--r-ok) 25%, var(--r-border))",
+        padding:         "2px 8px",
+        marginLeft:      "12px",
+      }}
+    >
+      <span
+        className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0"
+        style={{ backgroundColor: "var(--r-ok)" }}
+      />
       running
     </span>
   );
