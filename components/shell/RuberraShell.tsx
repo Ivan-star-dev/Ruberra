@@ -6,9 +6,9 @@ import SideRail from "./SideRail";
 import MainSurface from "./MainSurface";
 import { type Tab, type Message, type SignalStatus } from "./types";
 
-type TabMessages  = Record<Tab, Message[]>;
-type TabLoading   = Record<Tab, boolean>;
-type TabSignals   = Record<Tab, SignalStatus>;
+type TabMessages = Record<Tab, Message[]>;
+type TabLoading  = Record<Tab, boolean>;
+type TabSignals  = Record<Tab, SignalStatus>;
 
 const TABS: Tab[] = ["lab", "school", "creation"];
 
@@ -16,18 +16,58 @@ function emptyRecord<T>(value: T): Record<Tab, T> {
   return Object.fromEntries(TABS.map((t) => [t, value])) as Record<Tab, T>;
 }
 
+const STORAGE_KEY = "ruberra_messages";
+const MAX_CONTEXT = 20; // max messages sent to API per tab
+
+function loadMessages(): TabMessages {
+  if (typeof window === "undefined") return emptyRecord<Message[]>([]);
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as TabMessages;
+      // Validate shape
+      if (TABS.every((t) => Array.isArray(parsed[t]))) return parsed;
+    }
+  } catch { /* corrupt storage — ignore */ }
+  return emptyRecord<Message[]>([]);
+}
+
 export default function RuberraShell() {
   const [activeTab, setActiveTab] = useState<Tab>("lab");
-  const [messages,  setMessages]  = useState<TabMessages>(emptyRecord<Message[]>([]));
+  const [messages,  setMessages]  = useState<TabMessages>(loadMessages);
   const [loading,   setLoading]   = useState<TabLoading>(emptyRecord(false));
   const [signals,   setSignals]   = useState<TabSignals>(emptyRecord<SignalStatus>("idle"));
 
-  // Ref mirror to avoid stale closures inside async streaming callbacks
+  // Ref mirror to avoid stale closures in async callbacks
   const messagesRef = useRef<TabMessages>(messages);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
+  // Per-tab AbortControllers
+  const abortRefs = useRef<Record<Tab, AbortController | null>>(
+    emptyRecord<AbortController | null>(null)
+  );
+
+  // Persist messages to localStorage (debounced 500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+      } catch { /* storage full or unavailable — ignore */ }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [messages]);
+
+  const handleCancel = useCallback(() => {
+    abortRefs.current[activeTab]?.abort();
+  }, [activeTab]);
+
   const handleSend = useCallback(async (text: string) => {
     const tab = activeTab;
+
+    // Abort any existing stream on this tab
+    abortRefs.current[tab]?.abort();
+    const controller = new AbortController();
+    abortRefs.current[tab] = controller;
 
     const userMsg: Message = {
       id:        crypto.randomUUID(),
@@ -36,14 +76,12 @@ export default function RuberraShell() {
       timestamp: Date.now(),
     };
 
-    // Append user message and mark loading
     setMessages((prev) => ({ ...prev, [tab]: [...prev[tab], userMsg] }));
-    setLoading((prev)   => ({ ...prev, [tab]: true }));
-    setSignals((prev)   => ({ ...prev, [tab]: "streaming" }));
+    setLoading((prev)  => ({ ...prev, [tab]: true }));
+    setSignals((prev)  => ({ ...prev, [tab]: "streaming" }));
 
     const assistantId = crypto.randomUUID();
 
-    // Insert empty assistant placeholder immediately
     setMessages((prev) => ({
       ...prev,
       [tab]: [
@@ -53,15 +91,17 @@ export default function RuberraShell() {
     }));
 
     try {
-      // Build history for the API (exclude the empty placeholder)
+      // Context trimming: send at most MAX_CONTEXT messages (excluding the empty placeholder)
       const history = messagesRef.current[tab]
-        .filter((m) => !(m.id === assistantId))
+        .filter((m) => m.id !== assistantId)
+        .slice(-MAX_CONTEXT)
         .map(({ role, content }) => ({ role, content }));
 
       const res = await fetch("/api/chat", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ tab, messages: history }),
+        signal:  controller.signal,
       });
 
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
@@ -73,45 +113,48 @@ export default function RuberraShell() {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
-
         setMessages((prev) => ({
           ...prev,
           [tab]: prev[tab].map((m) =>
-            m.id === assistantId
-              ? { ...m, content: m.content + chunk }
-              : m
+            m.id === assistantId ? { ...m, content: m.content + chunk } : m
           ),
         }));
       }
 
       setSignals((prev) => ({ ...prev, [tab]: "completed" }));
-
-      // Auto-reset signal to idle after 2.4 s
       setTimeout(() => {
-        setSignals((prev) => (prev[tab] === "completed" ? { ...prev, [tab]: "idle" } : prev));
+        setSignals((prev) =>
+          prev[tab] === "completed" ? { ...prev, [tab]: "idle" } : prev
+        );
       }, 2400);
 
     } catch (err) {
-      console.error("Stream error", err);
+      const isAbort = err instanceof Error && err.name === "AbortError";
 
-      // Write inline error into the assistant placeholder
-      setMessages((prev) => ({
-        ...prev,
-        [tab]: prev[tab].map((m) =>
-          m.id === assistantId
-            ? { ...m, content: "Error — please try again." }
-            : m
-        ),
-      }));
-
-      setSignals((prev) => ({ ...prev, [tab]: "error" }));
-
-      setTimeout(() => {
-        setSignals((prev) => (prev[tab] === "error" ? { ...prev, [tab]: "idle" } : prev));
-      }, 2400);
+      if (isAbort) {
+        // Stream cancelled — leave whatever partial content streamed; don't write an error
+        setSignals((prev) => ({ ...prev, [tab]: "idle" }));
+      } else {
+        console.error("Stream error", err);
+        setMessages((prev) => ({
+          ...prev,
+          [tab]: prev[tab].map((m) =>
+            m.id === assistantId
+              ? { ...m, content: "Error — please try again." }
+              : m
+          ),
+        }));
+        setSignals((prev) => ({ ...prev, [tab]: "error" }));
+        setTimeout(() => {
+          setSignals((prev) =>
+            prev[tab] === "error" ? { ...prev, [tab]: "idle" } : prev
+          );
+        }, 2400);
+      }
 
     } finally {
       setLoading((prev) => ({ ...prev, [tab]: false }));
+      abortRefs.current[tab] = null;
     }
   }, [activeTab]);
 
@@ -129,6 +172,7 @@ export default function RuberraShell() {
           messages={messages[activeTab]}
           isLoading={loading[activeTab]}
           onSend={handleSend}
+          onCancel={handleCancel}
         />
       </div>
     </div>

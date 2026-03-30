@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { type Tab, type Message, type SignalStatus } from "./types";
 
 const ALL_TABS: Tab[] = ["lab", "school", "creation"];
@@ -11,7 +12,7 @@ interface SideRailProps {
 }
 
 export default function SideRail({ activeTab, messages, signals }: SideRailProps) {
-  const currentMessages   = messages[activeTab];
+  const currentMessages    = messages[activeTab];
   const completedResponses = currentMessages.filter(
     (m) => m.role === "assistant" && m.content.length > 0
   );
@@ -34,11 +35,7 @@ export default function SideRail({ activeTab, messages, signals }: SideRailProps
               .slice(-5)
               .reverse()
               .map((msg) => (
-                <RailItem
-                  key={msg.id}
-                  label={msg.content.length > 40 ? msg.content.slice(0, 40) + "…" : msg.content}
-                  title={msg.content}
-                />
+                <ArtifactItem key={msg.id} content={msg.content} />
               ))}
           </ul>
         )}
@@ -78,7 +75,7 @@ export default function SideRail({ activeTab, messages, signals }: SideRailProps
         <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-ruberra-subtext mb-2 select-none px-1">
           Signals
         </p>
-        <ul className="space-y-1">
+        <ul className="space-y-0.5">
           <SignalCountRow label="Sent"      value={totalSent > 0 ? String(totalSent) : "—"} />
           <SignalCountRow label="Exchanges" value={totalExchanges > 0 ? String(totalExchanges) : "—"} />
           {ALL_TABS.map((tab) => (
@@ -103,13 +100,41 @@ export default function SideRail({ activeTab, messages, signals }: SideRailProps
   );
 }
 
-function RailItem({ label, title }: { label: string; title?: string }) {
+function ArtifactItem({ content }: { content: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const preview = content.length > 40 ? content.slice(0, 40) + "…" : content;
+
+  function handleCopy(e: React.MouseEvent) {
+    e.stopPropagation();
+    navigator.clipboard.writeText(content).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }).catch(() => { /* clipboard unavailable */ });
+  }
+
   return (
-    <li
-      className="h-6 flex items-center px-2 rounded text-xs text-ruberra-subtext hover:bg-ruberra-border/60 hover:text-ruberra-text cursor-default transition-colors truncate"
-      title={title}
-    >
-      {label}
+    <li className="group relative flex items-center h-6 px-2 rounded text-xs text-ruberra-subtext hover:bg-ruberra-border/60 hover:text-ruberra-text cursor-default transition-colors">
+      <span className="truncate flex-1 pr-5" title={content}>
+        {preview}
+      </span>
+      <button
+        onClick={handleCopy}
+        className="absolute right-1 opacity-0 group-hover:opacity-100 transition-opacity text-ruberra-muted hover:text-ruberra-accent"
+        aria-label="Copy artifact"
+        title={copied ? "Copied!" : "Copy"}
+      >
+        {copied ? (
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+            <rect x="4" y="1" width="7" height="8" rx="1" stroke="currentColor" strokeWidth="1.2" />
+            <path d="M1 4h1M1 4v7h7v-1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
+        )}
+      </button>
     </li>
   );
 }

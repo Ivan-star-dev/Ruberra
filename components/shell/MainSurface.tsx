@@ -8,18 +8,25 @@ interface MainSurfaceProps {
   messages:  Message[];
   isLoading: boolean;
   onSend:    (text: string) => void;
+  onCancel:  () => void;
 }
 
 const CHAMBER: Record<Tab, { glyph: string; name: string; tagline: string }> = {
-  lab:      { glyph: "⊕", name: "Lab",      tagline: "Operational research. No guardrails."           },
-  school:   { glyph: "◎", name: "School",   tagline: "Structured progression. First principles first." },
-  creation: { glyph: "◈", name: "Creation", tagline: "Output engine. Directive in, artifact out."      },
+  lab:      { glyph: "⊕", name: "Lab",      tagline: "Operational research. No guardrails."            },
+  school:   { glyph: "◎", name: "School",   tagline: "Structured progression. First principles first."  },
+  creation: { glyph: "◈", name: "Creation", tagline: "Output engine. Directive in, artifact out."       },
 };
 
 type ExecStatus = "idle" | "thinking" | "streaming";
 
-export default function MainSurface({ activeTab, messages, isLoading, onSend }: MainSurfaceProps) {
-  const [draft,   setDraft]  = useState("");
+export default function MainSurface({
+  activeTab,
+  messages,
+  isLoading,
+  onSend,
+  onCancel,
+}: MainSurfaceProps) {
+  const [draft,  setDraft]  = useState("");
   const threadRef            = useRef<HTMLDivElement>(null);
   const textareaRef          = useRef<HTMLTextAreaElement>(null);
   const { glyph, name, tagline } = CHAMBER[activeTab];
@@ -69,7 +76,7 @@ export default function MainSurface({ activeTab, messages, isLoading, onSend }: 
       >
         <div className="max-w-[680px] mx-auto w-full px-10">
           {isEmpty ? (
-            <div className="h-full flex flex-col items-center justify-center gap-3 pt-24 select-none">
+            <div className="flex flex-col items-center justify-center gap-3 pt-24 select-none">
               <span className="text-3xl text-ruberra-muted">{glyph}</span>
               <h1 className="text-ruberra-text text-base font-semibold tracking-tight">{name}</h1>
               <p className="text-ruberra-subtext text-sm text-center max-w-[280px] leading-relaxed">
@@ -88,29 +95,32 @@ export default function MainSurface({ activeTab, messages, isLoading, onSend }: 
 
       {/* Execution status strip */}
       <div className="max-w-[680px] mx-auto w-full px-10">
-        <div
-          className={[
-            "h-5 flex items-center gap-2 transition-opacity duration-200",
-            execStatus === "idle" ? "opacity-0" : "opacity-100",
-          ].join(" ")}
-          aria-live="polite"
-        >
-          {execStatus !== "idle" && (
+        <div className="h-6 flex items-center justify-between">
+          {execStatus !== "idle" ? (
             <>
-              <span className="flex gap-0.5">
-                {[0, 1, 2].map((i) => (
-                  <span
-                    key={i}
-                    className="w-1 h-1 rounded-full bg-ruberra-muted animate-bounce"
-                    style={{ animationDelay: `${i * 120}ms` }}
-                  />
-                ))}
+              <span className="flex items-center gap-2">
+                <span className="flex gap-0.5">
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className="w-1 h-1 rounded-full bg-ruberra-muted animate-bounce"
+                      style={{ animationDelay: `${i * 120}ms` }}
+                    />
+                  ))}
+                </span>
+                <span className="text-xs tracking-wide capitalize text-ruberra-accent">
+                  {execStatus}
+                </span>
               </span>
-              <span className="text-xs tracking-wide capitalize text-ruberra-accent">
-                {execStatus}
-              </span>
+              <button
+                onClick={onCancel}
+                className="text-xs text-ruberra-muted hover:text-ruberra-text transition-colors px-1"
+                aria-label="Cancel stream"
+              >
+                Stop
+              </button>
             </>
-          )}
+          ) : null}
         </div>
       </div>
 
