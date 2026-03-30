@@ -86,16 +86,37 @@ function EmptyState({ tab }: { tab: Tab }) {
   );
 }
 
-function MessageBubble({ msg }: { msg: Message }) {
+// Turn number context passed via prop
+function ResponseHeader({ tab, turn }: { tab: Tab; turn: number }) {
+  const chamberTag: Record<Tab, string> = {
+    lab:      "LAB",
+    school:   "SCHOOL",
+    creation: "CREATION",
+  };
+  return (
+    <div
+      className="flex items-center gap-2 px-4 py-1.5 rounded-t-2xl"
+      style={{ borderBottom: "1px solid #ebe9e5", background: "#fafaf8" }}
+    >
+      <span className="text-[9px] font-semibold tracking-[0.12em] text-ruberra-muted/70 uppercase select-none">
+        {chamberTag[tab]}
+      </span>
+      <span className="text-[9px] font-mono text-ruberra-muted/40 select-none tabular-nums ml-auto">
+        #{turn}
+      </span>
+    </div>
+  );
+}
+
+function MessageBubble({ msg, turnIndex }: { msg: Message; turnIndex: number }) {
   const isUser = msg.role === "user";
   return (
     <div className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
       <div
         className={[
-          "rounded-2xl px-4 py-2.5",
           isUser
-            ? "max-w-[68%] bg-[#e8e6e2] text-ruberra-text rounded-br-md text-[13.5px] leading-[1.65]"
-            : "w-full bg-white text-ruberra-text rounded-bl-md",
+            ? "max-w-[68%] rounded-2xl rounded-br-md px-4 py-2.5 bg-[#e8e6e2] text-ruberra-text text-[13.5px] leading-[1.65]"
+            : "w-full rounded-2xl rounded-bl-md overflow-hidden bg-white text-ruberra-text",
         ].join(" ")}
         style={{
           boxShadow: isUser
@@ -104,11 +125,14 @@ function MessageBubble({ msg }: { msg: Message }) {
         }}
       >
         {isUser ? (
-          <>
-            {msg.content}
-          </>
+          msg.content
         ) : (
-          <RenderedOutput content={msg.content} streaming={msg.streaming} />
+          <>
+            <ResponseHeader tab={msg.tab} turn={turnIndex} />
+            <div className="px-4 py-3">
+              <RenderedOutput content={msg.content} streaming={msg.streaming} />
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -152,9 +176,15 @@ export default function MainSurface({ activeTab, messages, onSubmit, streaming }
           <EmptyState tab={activeTab} />
         ) : (
           <div className="flex flex-col gap-2.5 px-10 py-8 max-w-[680px] mx-auto w-full">
-            {visibleMessages.map((msg) => (
-              <MessageBubble key={msg.id} msg={msg} />
-            ))}
+            {(() => {
+              let assistantTurn = 0;
+              return visibleMessages.map((msg) => {
+                if (msg.role === "assistant") assistantTurn++;
+                return (
+                  <MessageBubble key={msg.id} msg={msg} turnIndex={assistantTurn} />
+                );
+              });
+            })()}
             <div ref={bottomRef} />
           </div>
         )}

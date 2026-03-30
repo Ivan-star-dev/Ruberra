@@ -6,11 +6,12 @@
  *   code       — monospace code with optional language tag
  *   verdict    — prominent conclusion/decision callout (Lab)
  *   insight    — secondary highlighted finding (Lab/School)
- *   steps      — numbered sequential steps (School/Creation)
+ *   steps      — numbered sequential steps (School/Creation) with optional state
  *   checklist  — checkbox task items (Creation)
  *   table      — compact key/value rows
  *   status     — named status rows with state indicator
  *   progress   — labeled progress bars (Lab/Creation)
+ *   signal     — compact horizontal signal strip (Lab: confidence, phase, next)
  */
 
 export type BlockType =
@@ -22,17 +23,25 @@ export type BlockType =
   | "checklist"
   | "table"
   | "status"
-  | "progress";
+  | "progress"
+  | "signal";
 
 export interface ProseBlock     { type: "prose";    text: string }
 export interface CodeBlock      { type: "code";     lang: string; text: string }
 export interface VerdictBlock   { type: "verdict";  text: string }
 export interface InsightBlock   { type: "insight";  text: string }
-export interface StepsBlock     { type: "steps";    items: string[] }
+
+// Steps item can carry an optional state marker: "done", "active", "blocked", or undefined (pending)
+export interface StepItem { text: string; state?: "done" | "active" | "blocked" }
+export interface StepsBlock     { type: "steps";    items: StepItem[] }
+
 export interface ChecklistBlock { type: "checklist"; items: { done: boolean; text: string }[] }
 export interface TableBlock     { type: "table";    rows: { key: string; value: string }[] }
 export interface StatusBlock    { type: "status";   rows: { label: string; state: "ok" | "warn" | "err" | "info" }[] }
 export interface ProgressBlock  { type: "progress"; rows: { label: string; value: number }[] }
+
+// Signal strip: compact horizontal key→value metadata row (confidence, phase, etc.)
+export interface SignalBlock    { type: "signal";   pairs: { key: string; value: string; tone?: "ok" | "warn" | "err" | "info" | "neutral" }[] }
 
 export type OutputBlock =
   | ProseBlock
@@ -43,7 +52,8 @@ export type OutputBlock =
   | ChecklistBlock
   | TableBlock
   | StatusBlock
-  | ProgressBlock;
+  | ProgressBlock
+  | SignalBlock;
 
 // ---------------------------------------------------------------------------
 // Parser
@@ -114,10 +124,21 @@ export function parseBlocks(raw: string): OutputBlock[] {
 function parseTypedBody(type: BlockType, body: string): OutputBlock[] {
   switch (type) {
     case "steps": {
+      // Supports optional state suffix: "Step text [done]", "Step text [active]", "Step text [blocked]"
       const items = body
         .split("\n")
         .map((l) => l.replace(/^\d+\.\s*/, "").trim())
-        .filter(Boolean);
+        .filter(Boolean)
+        .map((l) => {
+          const stateMatch = /\[(done|active|blocked)\]\s*$/i.exec(l);
+          if (stateMatch) {
+            return {
+              text: l.slice(0, stateMatch.index).trim(),
+              state: stateMatch[1].toLowerCase() as "done" | "active" | "blocked",
+            };
+          }
+          return { text: l };
+        });
       return [{ type: "steps", items }];
     }
 
@@ -168,6 +189,21 @@ function parseTypedBody(type: BlockType, body: string): OutputBlock[] {
         return { label: l.slice(0, sep).trim(), value };
       });
       return [{ type: "progress", rows }];
+    }
+
+    case "signal": {
+      // Format: "Key: value [tone]" — tone is optional: ok|warn|err|info|neutral
+      const pairs = body.split("\n").filter(Boolean).map((l) => {
+        const toneMatch = /\[(ok|warn|err|info|neutral)\]\s*$/i.exec(l);
+        const tone = toneMatch
+          ? (toneMatch[1].toLowerCase() as "ok" | "warn" | "err" | "info" | "neutral")
+          : undefined;
+        const clean = toneMatch ? l.slice(0, toneMatch.index).trim() : l.trim();
+        const sep = clean.indexOf(":");
+        if (sep === -1) return { key: clean, value: "", tone };
+        return { key: clean.slice(0, sep).trim(), value: clean.slice(sep + 1).trim(), tone };
+      });
+      return [{ type: "signal", pairs }];
     }
 
     case "code":

@@ -46,6 +46,13 @@ Label: 75
 Another label: 40
 \`\`\`
 
+\`\`\`block:signal
+Confidence: High [ok]
+Phase: Analysis [neutral]
+Next: Review findings [warn]
+\`\`\`
+Use signal for compact metadata strips — confidence, phase, next action, session state.
+
 Standard code fences for all code (always include language):
 \`\`\`python
 # code here
@@ -138,22 +145,32 @@ ${BLOCK_SYNTAX}`,
 
 const FALLBACK: Record<string, string[]> = {
   lab: [
-    "Reasoning kernel active. Query received and processed against the current context layer.",
-    "Analysis complete. The pattern holds under second-order examination.\n\n```block:insight\nThe signal you identified is structurally consistent across all three data layers. Confidence: high.\n```",
-    "Hypothesis registered. Cross-reference returns three relevant signals.\n\n```block:status\nok  Primary hypothesis confirmed\nwarn  Secondary variable requires isolation\ninfo  Third signal inconclusive — more data needed\n```",
-    "Experimental branch confirmed. Proceeding with derived output.\n\n```block:table\nMethod: Differential analysis\nConfidence: High\nScope: Current session context\nNext step: Validate against artifact set\n```",
+    // Verdict mode demo
+    "```block:verdict\nThe approach is structurally sound. Proceed with implementation. Primary risk is in the integration layer, not the core logic.\n```\n\n```block:signal\nConfidence: High [ok]\nPhase: Verdict [neutral]\nNext: Integration audit [warn]\n```",
+    // Report mode demo
+    "Analysis complete. Three conditions require attention before proceeding.\n\n```block:status\nok  Core hypothesis validated against available data\nok  Methodology is sound and reproducible\nwarn  Secondary variable not fully isolated — treat findings as provisional\nerr  Third data point conflicts with the model — flag for review\n```\n\n```block:insight\nThe conflict in the third data point is the highest-priority issue. Resolve this before drawing final conclusions.\n```",
+    // Investigation mode with signal strip
+    "The signal holds under first-order examination. Under second-order analysis, two competing interpretations emerge. The stronger one is the following.\n\n```block:table\nInterpretation A: Structural coupling in the integration layer\nInterpretation B: Environmental variance masking the signal\nEvidence weight: A > B (3:1)\nRecommended path: Isolate integration layer and retest\n```\n\n```block:signal\nConfidence: Medium [warn]\nModel: Differential [neutral]\nNext: Isolate and retest [active]\n```",
+    // Progress demo
+    "Investigation complete. Current state of the four parallel tracks:\n\n```block:progress\nCore logic validation: 92\nIntegration layer review: 47\nEdge case coverage: 68\nDocumentation: 20\n```",
   ],
   school: [
-    "Concept loaded. Decomposing from first principles.\n\n```block:steps\n1. Establish the foundational premise\n2. Identify the core mechanism\n3. Trace second-order effects\n4. Synthesize into working model\n```",
-    "The core mechanism operates through three interconnected layers. Here is the structured breakdown.",
-    "Study path generated.\n\n```block:steps\n1. Prerequisite: foundational concept A\n2. Prerequisite: foundational concept B\n3. Core topic: the mechanism you asked about\n4. Extension: applied cases and exceptions\n```",
-    "Understanding confirmed. Your framing is precise. Here is the extended explanation.",
+    // Lesson mode demo
+    "The concept operates through a three-stage mechanism. Here is the structured progression.\n\n```block:steps\n1. Establish the foundational premise — what the concept assumes to be true [done]\n2. Identify the core mechanism — how cause produces effect [active]\n3. Trace second-order effects — what the mechanism produces over time\n4. Synthesize — build a working model you can reason from\n```\n\n```block:insight\nMost confusion about this concept comes from skipping step 2. The mechanism is the thing — not the premise, not the effect.\n```",
+    // Progression mode demo
+    "Here is a structured learning path for this subject.\n\n```block:steps\n1. Foundation: core vocabulary and basic mechanics [done]\n2. Mechanism: how the system operates under normal conditions [active]\n3. Boundary cases: where the model breaks and why\n4. Application: using the concept to reason about real problems\n5. Mastery: being able to derive the concept from scratch\n```\n\n```block:signal\nCurrent stage: Mechanism [active]\nEstimated depth: Intermediate [neutral]\nNext checkpoint: Boundary cases [neutral]\n```",
+    // Reference mode demo
+    "```block:table\nConcept: The mechanism connecting cause and effect\nPrerequisite: Understanding of the foundational premise\nCommon error: Confusing the mechanism with its output\nTest question: Can you derive the outcome from the mechanism alone?\nMastery signal: Yes, without reference material\n```\n\n```block:insight\nThe clearest test of understanding: can you explain the mechanism to someone with no background, using only first principles?\n```",
+    "The distinction you are drawing is precise and important. Here is why it matters.\n\nMost learners treat these as equivalent because their outputs often overlap. But the mechanisms are different, which means they fail in different ways — and those failure modes are the real knowledge.",
   ],
   creation: [
-    "Builder kernel active. Generating structured output.\n\n```block:checklist\n[ ] Define scope and constraints\n[ ] Identify required components\n[ ] Build core structure\n[ ] Test and refine\n[x] Directive received\n```",
-    "Draft produced. Review and specify refinements as needed.",
-    "Build sequence initialized.\n\n```block:steps\n1. Set up project structure\n2. Implement core logic\n3. Add interface layer\n4. Test and validate output\n```",
-    "Output complete. Artifact registered to the current session context.",
+    // Execution mode demo
+    "Directive received. Here is the execution plan and current build state.\n\n```block:checklist\n[x] Scope and constraints defined\n[x] Components identified\n[ ] Core structure implementation\n[ ] Interface layer\n[ ] Integration and testing\n[ ] Output validation\n```\n\n```block:signal\nPhase: Build [active]\nBlocking issues: None [ok]\nEstimated steps remaining: 3 [neutral]\n```",
+    // Planning mode demo
+    "Build sequence initialized. Proceed in order — each phase gates the next.\n\n```block:steps\n1. Define the data model and interface contract [done]\n2. Implement core business logic in isolation\n3. Add the interface layer consuming the core\n4. Wire integration points and handle error states\n5. Validate output against the original directive\n```\n\n```block:table\nInput: The directive you provided\nOutput: Functional artifact matching the spec\nKey constraint: Interface must not depend on implementation details\nRisk: Integration layer — validate early\n```",
+    // Review mode demo
+    "Review complete. Three findings, one blocker.\n\n```block:status\nok  Core logic is correct and well-isolated\nok  Interface contract is clean\nwarn  Error handling is incomplete — three edge cases unhandled\nerr  Integration layer has a direct dependency on implementation — breaks the contract\n```\n\n```block:insight\nFix the integration layer first. The direct dependency will cause cascade failures when the implementation changes.\n```",
+    "Output complete.\n\n```block:signal\nArtifact: Generated [ok]\nConformance: High [ok]\nNext action: Review output and specify refinements [neutral]\n```",
   ],
 };
 
