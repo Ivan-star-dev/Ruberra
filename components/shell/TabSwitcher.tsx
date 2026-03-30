@@ -15,7 +15,11 @@ const TABS: { id: Tab; label: string }[] = [
 
 export default function TabSwitcher({ activeTab, onTabChange }: TabSwitcherProps) {
   return (
-    <nav className="flex items-center gap-1" aria-label="Ruberra modes">
+    <nav
+      className="flex items-center gap-px p-0.5 rounded-lg"
+      style={{ background: "#ebe9e5" }}
+      aria-label="Ruberra modes"
+    >
       {TABS.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
@@ -23,10 +27,10 @@ export default function TabSwitcher({ activeTab, onTabChange }: TabSwitcherProps
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
             className={[
-              "px-4 py-1.5 rounded-md text-sm font-medium tracking-wide transition-all duration-150",
+              "px-3.5 py-1 rounded-md text-[12px] font-medium tracking-wide transition-all duration-100 select-none",
               isActive
-                ? "bg-ruberra-border text-ruberra-text"
-                : "text-ruberra-subtext hover:text-ruberra-text hover:bg-ruberra-border/50",
+                ? "bg-ruberra-surface text-ruberra-text shadow-[0_1px_2px_rgba(26,25,22,0.08)]"
+                : "text-ruberra-subtext hover:text-ruberra-text/80",
             ].join(" ")}
             aria-current={isActive ? "page" : undefined}
           >

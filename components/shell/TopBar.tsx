@@ -9,26 +9,24 @@ interface TopBarProps {
 
 export default function TopBar({ activeTab, onTabChange }: TopBarProps) {
   return (
-    <header className="flex items-center justify-between px-5 h-12 border-b border-ruberra-border bg-ruberra-surface shrink-0">
+    <header
+      className="relative flex items-center justify-between px-6 h-11 bg-ruberra-surface shrink-0"
+      style={{ boxShadow: "0 1px 0 0 #e2e0dc" }}
+    >
       {/* Wordmark */}
-      <div className="flex items-center gap-3">
-        <span className="text-ruberra-text font-semibold text-base tracking-tight select-none">
-          Ruberra
-        </span>
-      </div>
+      <span className="text-ruberra-text/80 font-semibold text-[13px] tracking-tight select-none">
+        Ruberra
+      </span>
 
-      {/* Tab switcher — center */}
+      {/* Tab switcher — true center */}
       <div className="absolute left-1/2 -translate-x-1/2">
         <TabSwitcher activeTab={activeTab} onTabChange={onTabChange} />
       </div>
 
-      {/* Status pulse — right */}
-      <div className="flex items-center gap-2">
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ruberra-pulse opacity-60" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-ruberra-pulse" />
-        </span>
-        <span className="text-ruberra-subtext text-xs tracking-wide">Live</span>
+      {/* Live dot — right */}
+      <div className="flex items-center gap-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-ruberra-pulse/80 shrink-0" />
+        <span className="text-ruberra-subtext text-[11px] tracking-wide select-none">Live</span>
       </div>
     </header>
   );

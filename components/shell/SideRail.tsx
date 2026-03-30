@@ -9,135 +9,124 @@ interface SideRailProps {
   signal: Signal;
 }
 
-interface SectionProps {
-  label: string;
-  children: React.ReactNode;
-}
-
-function Section({ label, children }: SectionProps) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <section>
-      <p className="text-ruberra-subtext/60 text-[10px] uppercase tracking-widest mb-2.5 select-none font-medium">
-        {label}
-      </p>
+    <p className="text-ruberra-muted text-[10px] uppercase tracking-[0.1em] mb-2 select-none font-medium">
       {children}
-    </section>
+    </p>
   );
 }
 
-function EmptySlot({ label }: { label: string }) {
+function RailItem({ text, faint = false }: { text: string; faint?: boolean }) {
   return (
-    <div className="h-7 rounded bg-ruberra-border/25 flex items-center px-3">
-      <span className="text-ruberra-subtext/30 text-xs truncate">{label}</span>
+    <div className="flex items-center gap-2 h-6 px-2 rounded-md group cursor-default hover:bg-ruberra-border/60 transition-colors">
+      <span
+        className={[
+          "text-[11px] truncate leading-none transition-colors",
+          faint
+            ? "text-ruberra-muted"
+            : "text-ruberra-subtext group-hover:text-ruberra-text/70",
+        ].join(" ")}
+      >
+        {text}
+      </span>
     </div>
   );
 }
 
 const SIGNAL_DOT: Record<SignalStatus, string> = {
-  idle:      "bg-ruberra-pulse/60",
+  idle:      "bg-ruberra-pulse/50",
   streaming: "bg-ruberra-accent animate-pulse",
   completed: "bg-ruberra-pulse",
-  error:     "bg-red-500",
+  error:     "bg-red-400",
 };
 
-const SIGNAL_LABEL: Record<SignalStatus, string> = {
+const SIGNAL_TEXT: Record<SignalStatus, string> = {
   idle:      "Idle",
   streaming: "Streaming",
   completed: "Completed",
   error:     "Error",
 };
 
-function SignalsSection({ signal }: { signal: Signal }) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-2.5">
-        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${SIGNAL_DOT[signal.status]}`} />
-        <span className="text-ruberra-subtext/70 text-xs">{SIGNAL_LABEL[signal.status]}</span>
-      </div>
-      <div className="flex items-center gap-2.5">
-        <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-ruberra-subtext/20" />
-        <span className="text-ruberra-subtext/40 text-xs">
-          {signal.tab ? `mode · ${signal.tab}` : "no active run"}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 export default function SideRail({ activeTab, messages, signal }: SideRailProps) {
-  const tabMessages = messages.filter((m) => m.tab === activeTab && m.role === "user");
-
-  const historyItems = tabMessages
+  const userMsgs = messages
+    .filter((m) => m.tab === activeTab && m.role === "user")
     .slice()
     .reverse()
     .slice(0, 6);
 
-  const artifactMessages = messages.filter((m) => m.tab === activeTab && m.role === "assistant");
-  const artifactItems = artifactMessages
+  const artifactMsgs = messages
+    .filter((m) => m.tab === activeTab && m.role === "assistant" && !m.streaming && m.content.length > 0)
     .slice()
     .reverse()
     .slice(0, 4);
 
   return (
-    <aside className="w-56 shrink-0 border-r border-ruberra-border bg-ruberra-rail flex flex-col gap-5 px-4 py-5 overflow-y-auto">
-
+    <aside
+      className="w-48 shrink-0 bg-ruberra-rail flex flex-col px-3 py-4 overflow-y-auto gap-5"
+      style={{ boxShadow: "1px 0 0 0 #e2e0dc" }}
+    >
       {/* Artifacts */}
-      <Section label="Artifacts">
-        {artifactItems.length === 0 ? (
-          <>
-            <EmptySlot label="No artifacts yet" />
-            <EmptySlot label="—" />
-          </>
-        ) : (
-          <div className="space-y-1">
-            {artifactItems.map((m) => (
-              <div
+      <section>
+        <SectionLabel>Artifacts</SectionLabel>
+        <div className="space-y-0.5">
+          {artifactMsgs.length === 0 ? (
+            <>
+              <RailItem text="No artifacts yet" faint />
+              <RailItem text="—" faint />
+            </>
+          ) : (
+            artifactMsgs.map((m) => (
+              <RailItem
                 key={m.id}
-                className="h-7 rounded bg-ruberra-border/30 flex items-center px-3 group cursor-default"
-                title={m.content}
-              >
-                <span className="text-ruberra-subtext/70 text-xs truncate group-hover:text-ruberra-text/80 transition-colors">
-                  {m.content.slice(0, 32)}{m.content.length > 32 ? "…" : ""}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Section>
+                text={m.content.slice(0, 36) + (m.content.length > 36 ? "…" : "")}
+              />
+            ))
+          )}
+        </div>
+      </section>
 
       {/* History */}
-      <Section label="History">
-        {historyItems.length === 0 ? (
-          <>
-            <EmptySlot label="No history yet" />
-            <EmptySlot label="—" />
-          </>
-        ) : (
-          <div className="space-y-1">
-            {historyItems.map((m) => (
-              <div
+      <section>
+        <SectionLabel>History</SectionLabel>
+        <div className="space-y-0.5">
+          {userMsgs.length === 0 ? (
+            <>
+              <RailItem text="No history yet" faint />
+              <RailItem text="—" faint />
+            </>
+          ) : (
+            userMsgs.map((m) => (
+              <RailItem
                 key={m.id}
-                className="h-7 rounded bg-ruberra-border/30 flex items-center px-3 group cursor-default"
-                title={m.content}
-              >
-                <span className="text-ruberra-subtext/70 text-xs truncate group-hover:text-ruberra-text/80 transition-colors">
-                  {m.content.slice(0, 32)}{m.content.length > 32 ? "…" : ""}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Section>
+                text={m.content.slice(0, 36) + (m.content.length > 36 ? "…" : "")}
+              />
+            ))
+          )}
+        </div>
+      </section>
 
       {/* Signals */}
-      <Section label="Signals">
-        <SignalsSection signal={signal} />
-      </Section>
+      <section>
+        <SectionLabel>Signals</SectionLabel>
+        <div className="space-y-1.5 px-2">
+          <div className="flex items-center gap-2">
+            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${SIGNAL_DOT[signal.status]}`} />
+            <span className="text-[11px] text-ruberra-subtext">{SIGNAL_TEXT[signal.status]}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-ruberra-muted/40" />
+            <span className="text-[11px] text-ruberra-muted">
+              {signal.tab ? signal.tab : "no active run"}
+            </span>
+          </div>
+        </div>
+      </section>
 
-      {/* Mode indicator */}
-      <div className="mt-auto pt-2 border-t border-ruberra-border/40">
-        <span className="text-ruberra-subtext/50 text-[10px] capitalize tracking-widest select-none">
-          MODE · <span className="text-ruberra-accent/80">{activeTab.toUpperCase()}</span>
+      {/* Mode badge — bottom */}
+      <div className="mt-auto pt-2" style={{ borderTop: "1px solid #e2e0dc" }}>
+        <span className="text-[10px] text-ruberra-muted tracking-[0.1em] uppercase select-none">
+          {activeTab}
         </span>
       </div>
     </aside>
