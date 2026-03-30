@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ruberra-bg:      #0a0a0c;
+  --ruberra-surface: #111116;
+  --ruberra-rail:    #0e0e12;
+  --ruberra-border:  #1e1e26;
+  --ruberra-text:    #e8e8f0;
+  --ruberra-subtext: #7a7a90;
+  --ruberra-accent:  #6c63ff;
+  --ruberra-pulse:   #22c55e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--ruberra-bg);
+  color: var(--ruberra-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
