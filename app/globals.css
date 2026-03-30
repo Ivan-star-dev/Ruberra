@@ -3,14 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --ruberra-bg:      #0a0a0c;
-  --ruberra-surface: #111116;
-  --ruberra-rail:    #0e0e12;
-  --ruberra-border:  #1e1e26;
-  --ruberra-text:    #e8e8f0;
-  --ruberra-subtext: #7a7a90;
-  --ruberra-accent:  #6c63ff;
-  --ruberra-pulse:   #22c55e;
+  --ruberra-bg:      #f5f4f2;
+  --ruberra-surface: #fafaf8;
+  --ruberra-rail:    #f0efed;
+  --ruberra-border:  #e2e0dc;
+  --ruberra-text:    #1a1916;
+  --ruberra-subtext: #6b6966;
+  --ruberra-muted:   #b0ada8;
+  --ruberra-accent:  #5b52e8;
+  --ruberra-pulse:   #3d9b6e;
+  --ruberra-warm:    #ebe9e5;
+  --ruberra-stone:   #f0eeeb;
 }
 
 * {
@@ -26,4 +29,20 @@ body {
   color: var(--ruberra-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Mineral scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d1cc;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b8b4af;
 }

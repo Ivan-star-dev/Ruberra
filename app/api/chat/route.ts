@@ -23,21 +23,75 @@ const SYSTEM_PROMPTS: Record<string, string> = {
 
 const FALLBACK_RESPONSES: Record<string, string[]> = {
   lab: [
-    "Analyzing the problem space. The key variables here are constrained by the underlying model — let me reason through the edge cases systematically.",
+    `TYPE:verdict
+TITLE:Analysis Complete
+STATUS:pass
+SECTION:Key Findings
+- Primary constraint identified | boundary condition | done
+- Edge case present | non-linear divergence above threshold | warn
+- Hidden dependency at inference step 4 | source data noise risk | warn
+SECTION:Confidence Assessment
+- Core reasoning chain | sound through step 3 | pass
+- Step 4 dependency | unvalidated | partial
+NEXT:Isolate the step-4 dependency before drawing final conclusions.`,
     "That's an interesting hypothesis. If we hold the first assumption constant and vary the second, the output diverges in a non-linear way around the boundary condition.",
+    `TYPE:report
+TITLE:Reasoning Audit
+STATUS:partial
+SECTION:Findings
+- First principle holds | no contradictions | pass
+- Second inference | introduces assumed linearity | warn
+- Third step | dependent on noise floor below 12% | pending
+- Conclusion validity | conditional on noise assumption | partial
+NEXT:Verify source data noise characteristics before accepting conclusion.`,
     "Let me think through this step by step. The first principle here is that complexity compounds — so the cleanest path is to isolate variables before drawing conclusions.",
-    "The reasoning checks out up to the third inference. The fourth step introduces a hidden dependency that may invalidate the chain if the source data has noise above 12%.",
   ],
   school: [
-    "Great question. The core concept here builds on three foundational ideas — let me unpack each one before connecting them to your specific case.",
+    `TYPE:lesson
+TITLE:Core Concept Map
+STATUS:current
+PROGRESS:1/3 complete
+SECTION:Module Sequence
+- Foundational mechanism | feedback loop model | done
+- State vs process distinction | | current
+- Boundary condition behavior | what happens as input → 0 | locked
+NEXT:Master the state/process distinction before moving to boundary conditions.`,
     "This is a common point of confusion. The distinction is subtle but important: the first term describes a process, while the second describes a state. They're related but not interchangeable.",
-    "Think of it this way: the underlying mechanism is like a feedback loop. Once you understand that the output feeds back into the input, the rest of the behavior becomes predictable.",
+    `TYPE:lesson
+TITLE:Understanding Check
+STATUS:pass
+SECTION:What You Have Right
+- Core mechanism identified | feedback loop | done
+- Output-input relationship | understood | done
+SECTION:Gap to Close
+- Boundary condition | behavior at zero not yet modeled | current
+- Edge case handling | not yet covered | locked
+NEXT:Work through what happens when the input approaches zero — that's where structure reveals itself.`,
     "You're on the right track. The gap in your reasoning is around the boundary condition — what happens when the input approaches zero? That's where the model reveals its true structure.",
   ],
   creation: [
-    "Here's a strong structural approach: start with the invariant core, define the interfaces, then let the implementation details follow from the constraints rather than leading them.",
+    `TYPE:execution
+TITLE:Build Plan
+STATUS:live
+SECTION:Steps
+- Define invariant core and interfaces | before implementation | done
+- Implement against constraints | not leading with details | running
+- Add error boundary around async path | | pending
+- Handle empty data source fallback | | pending
+NEXT:Get the interface contract locked before touching implementation details.`,
     "The rough shape looks solid. Two things to tighten before shipping: the error boundary around the async path, and the fallback state when the data source returns empty.",
-    "I'd push back slightly on the naming — the function does more than its name implies, which will create maintenance confusion at scale. Consider splitting it at the seam where the behavior changes.",
+    `TYPE:creation
+TITLE:Architecture Review
+STATUS:partial
+TAGS:refactor, naming, state
+SECTION:Parameters
+- Function scope | exceeds implied contract | warn
+- Callback depth | 3 levels deep | warn
+- State ownership | split between caller and callee | partial
+SECTION:Recommended Changes
+- Split function at behavior seam | two focused functions | pending
+- Lift shared state one level | pass stable reference down | pending
+NEXT:Rename + split first, then lift state — in that order.`,
     "That pattern works. One refinement: instead of threading the callback three levels deep, lift the shared state one level and pass a stable reference down. It'll simplify testing significantly.",
   ],
 };
