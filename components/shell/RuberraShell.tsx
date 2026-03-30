@@ -15,10 +15,6 @@ import {
   type FloatingNote,
   type Theme,
 } from "./types";
-import TopBar from "./TopBar";
-import SideRail from "./SideRail";
-import MainSurface from "./MainSurface";
-import { type Tab, type Message, type SignalStatus } from "./types";
 import { parseBlocks } from "@/lib/parseBlocks";
 
 type TabMessages = Record<Tab, Message[]>;
@@ -49,9 +45,10 @@ function loadMessages(): TabMessages {
 
 export default function RuberraShell() {
   const [activeTab,    setActiveTab]    = useState<Tab>("lab");
-  const [messages,     setMessages]     = useState<TabMessages>(emptyRecord<Message[]>([]));
+  const [messages,     setMessages]     = useState<TabMessages>(loadMessages);
   const [loading,      setLoading]      = useState<TabLoading>(emptyRecord(false));
   const [signals,      setSignals]      = useState<TabSignals>(emptyRecord<SignalStatus>("idle"));
+  const [drafts,       setDrafts]       = useState<TabDrafts>(emptyRecord(""));
 
   /* Chamber view state */
   const [labView,      setLabView]      = useState<LabView>("chat");
@@ -75,21 +72,12 @@ export default function RuberraShell() {
 
   const messagesRef = useRef<TabMessages>(messages);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
-  const [activeTab, setActiveTab] = useState<Tab>("lab");
-  const [messages,  setMessages]  = useState<TabMessages>(loadMessages);
-  const [loading,   setLoading]   = useState<TabLoading>(emptyRecord(false));
-  const [signals,   setSignals]   = useState<TabSignals>(emptyRecord<SignalStatus>("idle"));
-  // Per-tab draft state — preserved independently when switching chambers
-  const [drafts,    setDrafts]    = useState<TabDrafts>(emptyRecord(""));
-
-  const messagesRef = useRef<TabMessages>(messages);
-  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   const abortRefs = useRef<Record<Tab, AbortController | null>>(
     emptyRecord<AbortController | null>(null)
   );
 
-  // Persist messages to localStorage (debounced 500ms)
+  /* Persist messages to localStorage (debounced 500ms) */
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
@@ -109,7 +97,6 @@ export default function RuberraShell() {
 
   const handleClearTab = useCallback((tab: Tab) => {
     setMessages((prev) => ({ ...prev, [tab]: [] }));
-    // Clear persisted storage for this tab immediately
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
@@ -131,11 +118,10 @@ export default function RuberraShell() {
     }));
   }, []);
 
-  /* ── Stream handler ────────────────────────────────────── */
+  /* ── Stream handler ────────────────────────── */
   const handleSend = useCallback(async (text: string) => {
     const tab = activeTab;
 
-    // Abort any existing stream on this tab
     abortRefs.current[tab]?.abort();
     const controller = new AbortController();
     abortRefs.current[tab] = controller;
@@ -153,7 +139,6 @@ export default function RuberraShell() {
     setSignals((prev)  => ({ ...prev, [tab]: "streaming" }));
 
     const assistantId = crypto.randomUUID();
-
     setMessages((prev) => ({
       ...prev,
       [tab]: [
@@ -173,7 +158,7 @@ export default function RuberraShell() {
       const res = await fetch("/api/chat", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ tab, messages: history }),
+        body:    JSON.stringify({ tab, messages: [...history, { role: "user", content: text }] }),
         signal:  controller.signal,
       });
 
@@ -182,14 +167,6 @@ export default function RuberraShell() {
       const reader  = res.body.getReader();
       const decoder = new TextDecoder();
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        setMessages((prev) => ({
-          ...prev,
-          [tab]: prev[tab].map((m) =>
-            m.id === assistantId ? { ...m, content: m.content + chunk } : m
       try {
         while (true) {
           const { done, value } = await reader.read();
@@ -215,13 +192,12 @@ export default function RuberraShell() {
 
     } catch (err) {
       const isAbort = err instanceof Error && err.name === "AbortError";
+      parseOnComplete = false;
 
       if (isAbort) {
-        parseOnComplete = false;
         setSignals((prev) => ({ ...prev, [tab]: "idle" }));
       } else {
-        parseOnComplete = false;
-        console.error("Stream error", err);
+        console.error("[Ruberra] stream error", err);
         setMessages((prev) => ({
           ...prev,
           [tab]: prev[tab].map((m) =>
@@ -237,30 +213,6 @@ export default function RuberraShell() {
           );
         }, 2400);
       }
-
-      setSignals((prev) => ({ ...prev, [tab]: "completed" }));
-      setTimeout(() => {
-        setSignals((prev) =>
-          prev[tab] === "completed" ? { ...prev, [tab]: "idle" } : prev
-        );
-      }, 2400);
-
-    } catch (err) {
-      console.error("[Ruberra] stream error", err);
-      setMessages((prev) => ({
-        ...prev,
-        [tab]: prev[tab].map((m) =>
-          m.id === assistantId
-            ? { ...m, content: "Error — please try again." }
-            : m
-        ),
-      }));
-      setSignals((prev) => ({ ...prev, [tab]: "error" }));
-      setTimeout(() => {
-        setSignals((prev) =>
-          prev[tab] === "error" ? { ...prev, [tab]: "idle" } : prev
-        );
-      }, 2400);
     } finally {
       setLoading((prev) => ({ ...prev, [tab]: false }));
       abortRefs.current[tab] = null;
@@ -270,12 +222,7 @@ export default function RuberraShell() {
     }
   }, [activeTab, applyParsedBlocks]);
 
-  const isLive = Object.values(signals).some((s) => s === "streaming");
-
-  return (
-    <div className="h-screen w-screen flex flex-col bg-ruberra-bg overflow-hidden">
-      <TopBar activeTab={activeTab} onTabChange={setActiveTab} isLive={isLive} />
-  /* ── Notes handlers ────────────────────────────────────── */
+  /* ── Notes handlers ───────────────────────── */
   function addNote() {
     const note: FloatingNote = {
       id:        crypto.randomUUID(),
@@ -297,7 +244,9 @@ export default function RuberraShell() {
     setNotes((prev) => prev.filter((n) => n.id !== id || n.pinned));
   }
 
-  /* ── Render ─────────────────────────────────────────────── */
+  const isLive = Object.values(signals).some((s) => s === "streaming");
+
+  /* ── Render ──────────────────────────────── */
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden"
       style={{ backgroundColor: "var(--r-bg)" }}>
@@ -306,7 +255,7 @@ export default function RuberraShell() {
         activeTab={activeTab}
         onTabChange={(t) => { setActiveTab(t); }}
         theme={theme}
-        onThemeToggle={() => setTheme(t => t === "dark" ? "light" : "dark")}
+        onThemeToggle={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
       />
 
       <div className="flex flex-1 min-h-0">

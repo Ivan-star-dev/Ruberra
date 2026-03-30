@@ -13,12 +13,6 @@ interface RequestBody {
 }
 
 const SYSTEM_PROMPTS: Record<string, string> = {
-  lab:
-    "You are the Ruberra Lab kernel — a rigorous analytical intelligence. Think carefully, expose hidden structure, reason precisely, and be substantive. No filler, no preamble. Precision above comfort.",
-  school:
-    "You are the Ruberra School guide — a clear, structured teacher. Explain from first principles, correct misconceptions directly, build layered understanding. Be warm but precise. Pedagogy without condescension.",
-  creation:
-    "You are the Ruberra Creation forge — a senior builder AI. Help design, draft, and construct real things. Push back on weak architecture, suggest concrete improvements. Think in systems. Be direct and artifact-oriented.",
   lab: `You are a rigorous analytical intelligence inside Ruberra Lab. Think carefully, reason precisely, and expose hidden structure in problems. Be concise and substantive. No filler.
 
 When your response is analytical or evaluative, structure it using these block types:
@@ -82,7 +76,7 @@ SECTION:Meta
 - Phase | Analysis | running
 - Next | Dependency check | warn`,
 
-    "That's an interesting hypothesis. If we hold the first assumption constant and vary the second, the output diverges in a non-linear way around the boundary condition. The non-linearity matters because it means **small perturbations in the input produce disproportionate output variance** — which is exactly where naive models fail.",
+    "That's an interesting hypothesis. If we hold the first assumption constant and vary the second, the output diverges in a non-linear way around the boundary condition. The non-linearity matters because it means small perturbations in the input produce disproportionate output variance — which is exactly where naive models fail.",
 
     `TYPE:report
 TITLE:Reasoning Audit
@@ -107,7 +101,7 @@ SECTION:Module Sequence
 - Boundary condition behavior | what happens as input → 0 | locked
 NEXT:Master the state/process distinction — it unlocks the boundary condition analysis.`,
 
-    "This is a common point of confusion. The distinction is subtle but important: the first term describes a **process** (ongoing transformation), while the second describes a **state** (a snapshot in time). They're related but not interchangeable — conflating them produces reasoning errors at scale.",
+    "This is a common point of confusion. The distinction is subtle but important: the first term describes a process (ongoing transformation), while the second describes a state (a snapshot in time). They're related but not interchangeable — conflating them produces reasoning errors at scale.",
 
     `TYPE:lesson
 TITLE:Understanding Check
@@ -141,7 +135,7 @@ SECTION:Meta
 - Blocking | Error boundary | warn
 - Next | Async path first | warn`,
 
-    "The rough shape looks solid. Two things to tighten before shipping: the **error boundary around the async path** (currently unhandled), and the **fallback state when the data source returns empty** — both are likely failure modes in production.",
+    "The rough shape looks solid. Two things to tighten before shipping: the error boundary around the async path (currently unhandled), and the fallback state when the data source returns empty — both are likely failure modes in production.",
 
     `TYPE:creation
 TITLE:Architecture Review
@@ -155,7 +149,7 @@ SECTION:Recommended Changes
 - Lift shared state one level | pass stable reference down | pending
 NEXT:Rename and split first, then lift state. Order matters here.`,
 
-    "That pattern works. One refinement: instead of threading the callback three levels deep, **lift the shared state one level** and pass a stable reference down. It simplifies testing significantly and removes the implicit coupling between the layers.",
+    "That pattern works. One refinement: instead of threading the callback three levels deep, lift the shared state one level and pass a stable reference down. It simplifies testing significantly and removes the implicit coupling between the layers.",
   ],
 };
 
@@ -166,14 +160,6 @@ function makeFallbackStream(tab: string): ReadableStream<Uint8Array> {
   let i = 0;
 
   return new ReadableStream<Uint8Array>({
-    async pull(controller) {
-      if (i >= text.length) {
-        controller.close();
-        return;
-      }
-      controller.enqueue(encoder.encode(text[i]));
-      i++;
-      await new Promise((r) => setTimeout(r, 14));
     start(controller) {
       // Brief "thinking" pause before first character
       setTimeout(function emit() {
