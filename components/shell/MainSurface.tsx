@@ -111,34 +111,29 @@ function ResponseHeader({
   const accentColor = CHAMBER_ACCENT[tab];
   return (
     <div
-      className="flex items-center gap-2.5 px-3 py-1.5"
+      className="flex items-center gap-2 px-3.5 py-1.5"
       style={{
         borderBottom: "1px solid #e8e6e2",
         background: "#f5f4f2",
         borderLeft: `3px solid ${accentColor}`,
       }}
     >
-      {/* Live streaming dot */}
-      {streaming ? (
-        <span
-          className="w-1.5 h-1.5 rounded-full shrink-0 animate-pulse"
-          style={{ background: accentColor }}
-        />
-      ) : (
-        <span
-          className="w-1.5 h-1.5 rounded-full shrink-0 opacity-30"
-          style={{ background: accentColor }}
-        />
-      )}
+      {/* ● Claude Code dot — pulse when streaming, solid at rest */}
+      <span
+        className={`font-mono text-[11px] shrink-0 select-none leading-none ${streaming ? "animate-pulse" : ""}`}
+        style={{ color: accentColor }}
+      >
+        ●
+      </span>
 
       <span
-        className="text-[9.5px] font-semibold tracking-[0.12em] uppercase select-none"
-        style={{ color: accentColor, opacity: streaming ? 1 : 0.6 }}
+        className="font-mono text-[10px] font-semibold tracking-[0.1em] uppercase select-none"
+        style={{ color: accentColor }}
       >
         {CHAMBER_TAG[tab]}
       </span>
 
-      <span className="text-[9px] font-mono text-ruberra-muted/50 select-none tabular-nums ml-auto">
+      <span className="font-mono text-[9px] text-ruberra-muted/40 select-none tabular-nums ml-auto">
         #{turn}
       </span>
     </div>

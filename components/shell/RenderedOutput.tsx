@@ -22,18 +22,29 @@ interface RenderedOutputProps {
 }
 
 // ---------------------------------------------------------------------------
-// Semantic color tokens — visible but not loud
+// Semantic color system — Claude Code DNA palette
 // ---------------------------------------------------------------------------
 const C = {
-  ok:      { dot: "#3d9b6e", text: "#2d7a56", bg: "rgba(61,155,110,0.07)",   border: "rgba(61,155,110,0.25)"  },
-  warn:    { dot: "#ca8a04", text: "#92620a", bg: "rgba(202,138,4,0.07)",    border: "rgba(202,138,4,0.25)"   },
-  err:     { dot: "#dc2626", text: "#b91c1c", bg: "rgba(220,38,38,0.07)",    border: "rgba(220,38,38,0.22)"   },
-  info:    { dot: "#8a8780", text: "#6b6966", bg: "transparent",             border: "rgba(138,135,128,0.20)" },
-  neutral: { dot: "#b8b5ae", text: "#8a8780", bg: "transparent",             border: "rgba(182,178,174,0.20)" },
-  active:  { dot: "#5b52e8", text: "#4a42cc", bg: "rgba(91,82,232,0.08)",   border: "rgba(91,82,232,0.25)"   },
+  ok:      { dot: "#3d9b6e", text: "#2d7a56", bg: "rgba(0,80,0,0.10)",        stripe: "rgba(0,100,0,0.22)",    rowBg: "rgba(0,60,0,0.07)"   },
+  warn:    { dot: "#ca8a04", text: "#92620a", bg: "rgba(202,138,4,0.08)",      stripe: "rgba(180,120,0,0.35)",  rowBg: "rgba(180,120,0,0.05)" },
+  err:     { dot: "#dc2626", text: "#b91c1c", bg: "rgba(139,0,0,0.10)",        stripe: "rgba(180,0,0,0.40)",    rowBg: "rgba(139,0,0,0.07)"  },
+  info:    { dot: "#8a8780", text: "#6b6966", bg: "transparent",               stripe: "rgba(138,135,128,0.25)", rowBg: "transparent"         },
+  neutral: { dot: "#b8b5ae", text: "#8a8780", bg: "transparent",               stripe: "#d6d4cf",               rowBg: "transparent"         },
+  active:  { dot: "#5b52e8", text: "#4a42cc", bg: "rgba(91,82,232,0.07)",      stripe: "rgba(91,82,232,0.30)",  rowBg: "rgba(91,82,232,0.04)" },
 };
 
-// p inside li (loose lists): render as span to avoid block-level nesting + margin
+// Inline value colors — cyan for type/identifier, amber for warn, green for ok, red for err
+const INLINE = {
+  type:    "#0e7490",   // cyan — identifiers, types
+  amber:   "#92620a",   // amber — warnings, pending
+  green:   "#2d7a56",   // green — confirmed, passing
+  red:     "#b91c1c",   // red — errors, blocked
+  muted:   "#8a8780",   // neutral values
+};
+
+// ---------------------------------------------------------------------------
+// Markdown paragraph — handles loose list wrapping in react-markdown v10
+// ---------------------------------------------------------------------------
 function MDParagraph({ children, node }: { children?: React.ReactNode; node?: { tagName?: string } }) {
   if (node?.tagName === "li") {
     return <span className="text-[13.5px] leading-[1.65] text-ruberra-text">{children}</span>;
@@ -42,42 +53,8 @@ function MDParagraph({ children, node }: { children?: React.ReactNode; node?: { 
 }
 
 // ---------------------------------------------------------------------------
-// Small shared primitives
+// ProseRenderer — react-markdown with GFM
 // ---------------------------------------------------------------------------
-
-function Chip({ label, tone = "neutral" }: { label: string; tone?: keyof typeof C }) {
-  const cfg = C[tone];
-  return (
-    <span
-      className="inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-semibold uppercase tracking-[0.08em] select-none"
-      style={{ color: cfg.text, background: cfg.bg, border: `1px solid ${cfg.border}` }}
-    >
-      {label}
-    </span>
-  );
-}
-
-function Dot({ tone = "neutral", pulse = false }: { tone?: keyof typeof C; pulse?: boolean }) {
-  return (
-    <span
-      className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${pulse ? "animate-pulse" : ""}`}
-      style={{ background: C[tone].dot }}
-    />
-  );
-}
-
-function SectionMeta({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-ruberra-muted/70 select-none">
-      {children}
-    </span>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Block renderers
-// ---------------------------------------------------------------------------
-
 function ProseRenderer({ text }: { text: string }) {
   return (
     <ReactMarkdown
@@ -95,12 +72,12 @@ function ProseRenderer({ text }: { text: string }) {
         h3:         ({ children }) => <h3 className="text-[13.5px] font-medium text-ruberra-text mt-2.5 mb-1">{children}</h3>,
         blockquote: ({ children }) => <blockquote className="pl-3 my-2 text-ruberra-subtext text-[13px] leading-relaxed" style={{ borderLeft: "2px solid #d6d4cf" }}>{children}</blockquote>,
         a:          ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-ruberra-accent underline underline-offset-2 hover:opacity-75 transition-opacity">{children}</a>,
-        pre:        ({ children }) => <pre className="rounded-lg px-4 py-3 overflow-x-auto my-2" style={{ background: "#f0efed", border: "1px solid #e2e0dc" }}>{children}</pre>,
+        pre:        ({ children }) => <pre className="rounded px-4 py-3 overflow-x-auto my-2 font-mono" style={{ background: "#1a1916", border: "1px solid #2e2c29" }}>{children}</pre>,
         code:       ({ children, className }) => {
           if (!className) {
-            return <code className="font-mono text-[11.5px] px-1.5 py-0.5 rounded text-ruberra-text/90 align-baseline" style={{ background: "#ebe9e5", border: "1px solid #d6d4cf" }}>{children}</code>;
+            return <code className="font-mono text-[11.5px] px-1.5 py-0.5 rounded align-baseline" style={{ background: "#ebe9e5", border: "1px solid #d6d4cf", color: INLINE.type }}>{children}</code>;
           }
-          return <code className="font-mono text-[12px] text-ruberra-text/90 leading-relaxed">{children}</code>;
+          return <code className="font-mono text-[12px] leading-relaxed" style={{ color: "#e2e0dc" }}>{children}</code>;
         },
       }}
     >
@@ -109,24 +86,22 @@ function ProseRenderer({ text }: { text: string }) {
   );
 }
 
-// VERDICT — tribunal weight, full-width, dark-bordered header surface
+// ---------------------------------------------------------------------------
+// VERDICT — tribunal weight, dark terminal surface
+// ---------------------------------------------------------------------------
 function VerdictRenderer({ block }: { block: VerdictBlock }) {
   return (
-    <div
-      className="rounded-xl overflow-hidden"
-      style={{ border: "1px solid rgba(26,25,22,0.13)" }}
-    >
-      {/* Header bar */}
-      <div
-        className="flex items-center gap-2 px-4 py-2"
-        style={{ background: "rgba(26,25,22,0.05)", borderBottom: "1px solid rgba(26,25,22,0.08)" }}
-      >
-        <Dot tone="neutral" />
-        <SectionMeta>Verdict</SectionMeta>
+    <div className="rounded overflow-hidden" style={{ background: "#1a1916", border: "1px solid #2e2c29" }}>
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-1.5" style={{ borderBottom: "1px solid #2e2c29" }}>
+        <span className="text-[11px] font-mono" style={{ color: C.ok.dot }}>●</span>
+        <span className="text-[9.5px] font-semibold tracking-[0.12em] uppercase select-none" style={{ color: "#8a8780" }}>
+          Verdict
+        </span>
       </div>
       {/* Body */}
-      <div className="px-4 py-3.5" style={{ background: "rgba(26,25,22,0.02)" }}>
-        <p className="text-[14px] leading-[1.6] text-ruberra-text font-medium tracking-tight">
+      <div className="px-4 py-3">
+        <p className="text-[13.5px] leading-[1.6] font-medium tracking-tight" style={{ color: "#e2e0dc" }}>
           {block.text}
         </p>
       </div>
@@ -134,19 +109,17 @@ function VerdictRenderer({ block }: { block: VerdictBlock }) {
   );
 }
 
-// INSIGHT — accent-keyed secondary callout with label
+// ---------------------------------------------------------------------------
+// INSIGHT — accent-keyed callout with ● dot
+// ---------------------------------------------------------------------------
 function InsightRenderer({ block }: { block: InsightBlock }) {
   return (
-    <div
-      className="rounded-lg overflow-hidden"
-      style={{ border: `1px solid ${C.active.border}` }}
-    >
-      <div
-        className="flex items-center gap-2 px-4 py-1.5"
-        style={{ background: C.active.bg, borderBottom: `1px solid ${C.active.border}` }}
-      >
-        <Dot tone="active" />
-        <SectionMeta>Insight</SectionMeta>
+    <div className="rounded overflow-hidden" style={{ background: C.active.bg, border: `1px solid ${C.active.stripe}` }}>
+      <div className="flex items-center gap-2 px-4 py-1.5" style={{ borderBottom: `1px solid ${C.active.stripe}` }}>
+        <span className="text-[11px] font-mono" style={{ color: C.active.dot }}>●</span>
+        <span className="text-[9.5px] font-semibold tracking-[0.12em] uppercase select-none" style={{ color: C.active.text }}>
+          Insight
+        </span>
       </div>
       <div className="px-4 py-3">
         <p className="text-[13.5px] leading-[1.65] text-ruberra-text">{block.text}</p>
@@ -155,30 +128,26 @@ function InsightRenderer({ block }: { block: InsightBlock }) {
   );
 }
 
-// CODE — language bar, dot, monospace
+// ---------------------------------------------------------------------------
+// CODE — dark terminal surface, language header, dot cluster
+// ---------------------------------------------------------------------------
 function CodeRenderer({ block }: { block: CodeBlock }) {
   return (
-    <div
-      className="rounded-lg overflow-hidden"
-      style={{ background: "#f0efed", border: "1px solid #e2e0dc" }}
-    >
-      <div
-        className="flex items-center gap-2 px-3.5 py-1.5"
-        style={{ borderBottom: "1px solid #e2e0dc", background: "#ebe9e5" }}
-      >
-        <span className="flex gap-1">
-          <span className="w-2 h-2 rounded-full" style={{ background: "#d6d4cf" }} />
-          <span className="w-2 h-2 rounded-full" style={{ background: "#d6d4cf" }} />
-          <span className="w-2 h-2 rounded-full" style={{ background: "#d6d4cf" }} />
+    <div className="rounded overflow-hidden" style={{ background: "#1a1916", border: "1px solid #2e2c29" }}>
+      <div className="flex items-center gap-2 px-3.5 py-1.5" style={{ borderBottom: "1px solid #2e2c29", background: "#141311" }}>
+        <span className="flex gap-1 mr-1">
+          <span className="w-2 h-2 rounded-full" style={{ background: "#3a3835" }} />
+          <span className="w-2 h-2 rounded-full" style={{ background: "#3a3835" }} />
+          <span className="w-2 h-2 rounded-full" style={{ background: "#3a3835" }} />
         </span>
         {block.lang && block.lang !== "text" && (
-          <span className="text-[10px] font-mono text-ruberra-subtext/70 tracking-widest uppercase ml-1">
+          <span className="text-[10px] font-mono tracking-widest uppercase" style={{ color: INLINE.muted }}>
             {block.lang}
           </span>
         )}
       </div>
       <pre className="px-4 py-3.5 overflow-x-auto">
-        <code className="text-[12px] font-mono text-ruberra-text/90 leading-[1.75]">
+        <code className="text-[12px] font-mono leading-[1.75]" style={{ color: "#e2e0dc" }}>
           {block.text}
         </code>
       </pre>
@@ -186,80 +155,92 @@ function CodeRenderer({ block }: { block: CodeBlock }) {
   );
 }
 
-// STEPS — progression rail with state markers: done / active / blocked / pending
+// ---------------------------------------------------------------------------
+// STEPS — Claude Code tree rail: ● dot + └ connector per step
+// ---------------------------------------------------------------------------
 function StepsRenderer({ block }: { block: StepsBlock }) {
-  const stateCfg = {
-    done:    { circleBg: C.ok.bg,      circleBorder: C.ok.border,     circleText: C.ok.text,     lineBg: C.ok.dot,    badge: <Chip label="done" tone="ok" /> },
-    active:  { circleBg: C.active.bg,  circleBorder: C.active.border, circleText: C.active.text, lineBg: "#e2e0dc",   badge: <Chip label="active" tone="active" /> },
-    blocked: { circleBg: C.err.bg,     circleBorder: C.err.border,    circleText: C.err.text,    lineBg: "#e2e0dc",   badge: <Chip label="blocked" tone="err" /> },
-  };
-
   return (
-    <div
-      className="rounded-lg overflow-hidden"
-      style={{ border: "1px solid #e2e0dc" }}
-    >
+    <div className="rounded overflow-hidden" style={{ border: "1px solid #e2e0dc" }}>
+      {/* Header */}
       <div
         className="flex items-center gap-2 px-4 py-1.5"
-        style={{ borderBottom: "1px solid #e2e0dc", background: "#f5f4f2" }}
+        style={{ background: "#f5f4f2", borderBottom: "1px solid #e2e0dc" }}
       >
-        <SectionMeta>Steps</SectionMeta>
-        <span className="text-[9px] font-mono text-ruberra-muted/50 ml-auto tabular-nums">
+        <span className="text-[9.5px] font-semibold tracking-[0.12em] uppercase text-ruberra-muted/70 select-none">
+          Steps
+        </span>
+        <span className="text-[9px] font-mono text-ruberra-muted/40 ml-auto tabular-nums">
           {block.items.length}
         </span>
       </div>
-      <ol className="px-4 py-3 space-y-0">
+
+      {/* Step list */}
+      <div className="px-4 py-2.5 space-y-0">
         {block.items.map((item, i) => {
-          const isLast = i === block.items.length - 1;
           const s = item.state;
-          const cfg = s ? stateCfg[s] : null;
+          const isLast = i === block.items.length - 1;
 
-          const circleBg     = cfg?.circleBg     ?? "transparent";
-          const circleBorder = cfg?.circleBorder  ?? "#d6d4cf";
-          const circleText   = cfg?.circleText    ?? "#8a8780";
-          const lineBg       = cfg?.lineBg        ?? "#e2e0dc";
-          const badge        = cfg?.badge;
+          // Dot color per state
+          const dotColor =
+            s === "done"    ? C.ok.dot    :
+            s === "active"  ? C.active.dot :
+            s === "blocked" ? C.err.dot   :
+            "#d6d4cf";
 
-          // Done items: check mark instead of number
-          const circleContent = s === "done"
-            ? <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l2 2L6.5 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            : <span style={{ color: circleText }}>{i + 1}</span>;
+          // Text treatment
+          const textClass =
+            s === "done"    ? "line-through" :
+            s === "blocked" ? "opacity-50"  :
+            "";
+          const textColor =
+            s === "done"    ? INLINE.green  :
+            s === "active"  ? "inherit"     :
+            s === "blocked" ? INLINE.red    :
+            "inherit";
+
+          // Inline state label (amber for active, no label for pending)
+          const stateLabel =
+            s === "done"    ? null :
+            s === "active"  ? <span className="font-mono text-[10px]" style={{ color: INLINE.amber }}>(active)</span> :
+            s === "blocked" ? <span className="font-mono text-[10px]" style={{ color: INLINE.red }}>(blocked)</span> :
+            null;
 
           return (
-            <li key={i} className="flex items-start gap-3 relative">
-              {!isLast && (
-                <div
-                  className="absolute left-[9px] top-[22px] bottom-0 w-px"
-                  style={{ background: lineBg }}
-                />
-              )}
-              <span
-                className="shrink-0 w-[19px] h-[19px] rounded-full flex items-center justify-center text-[9.5px] font-semibold z-10 mt-0.5"
-                style={{ background: circleBg, border: `1.5px solid ${circleBorder}`, color: circleText }}
-              >
-                {circleContent}
-              </span>
-              <div className="flex-1 pb-3 flex items-start justify-between gap-2 min-w-0">
+            <div key={i} className="py-0.5">
+              {/* Main step row */}
+              <div className="flex items-baseline gap-2">
+                <span className="font-mono text-[11px] shrink-0 select-none" style={{ color: dotColor }}>●</span>
                 <span
-                  className={[
-                    "text-[13.5px] leading-[1.65] flex-1",
-                    s === "done" ? "text-ruberra-subtext/60 line-through" : "text-ruberra-text",
-                    s === "blocked" ? "text-ruberra-subtext" : "",
-                  ].join(" ")}
+                  className={`text-[13px] leading-[1.6] text-ruberra-text flex-1 ${textClass}`}
+                  style={{ color: textColor !== "inherit" ? textColor : undefined }}
                 >
                   {item.text}
                 </span>
-                {badge && <span className="shrink-0 mt-0.5">{badge}</span>}
+                {stateLabel && <span className="shrink-0">{stateLabel}</span>}
               </div>
-            </li>
+
+              {/* └ connector line to next step */}
+              {!isLast && (
+                <div className="flex items-stretch gap-2 mt-0 min-h-[10px]">
+                  <span
+                    className="font-mono text-[11px] shrink-0 select-none self-stretch flex items-start pt-0"
+                    style={{ color: "#d6d4cf", lineHeight: "10px" }}
+                  >
+                    └
+                  </span>
+                </div>
+              )}
+            </div>
           );
         })}
-      </ol>
+      </div>
     </div>
   );
 }
 
-// CHECKLIST — execution build surface, progress header
+// ---------------------------------------------------------------------------
+// CHECKLIST — build execution surface, ● dot per item, progress header
+// ---------------------------------------------------------------------------
 function ChecklistRenderer({ block }: { block: ChecklistBlock }) {
   const doneCount = block.items.filter((i) => i.done).length;
   const total = block.items.length;
@@ -267,151 +248,156 @@ function ChecklistRenderer({ block }: { block: ChecklistBlock }) {
   const allDone = doneCount === total;
 
   return (
-    <div
-      className="rounded-lg overflow-hidden"
-      style={{ border: "1px solid #e2e0dc" }}
-    >
-      {/* Header with progress bar */}
-      <div
-        className="px-4 pt-2.5 pb-2"
-        style={{ borderBottom: "1px solid #e2e0dc", background: "#f5f4f2" }}
-      >
+    <div className="rounded overflow-hidden" style={{ border: "1px solid #e2e0dc" }}>
+      {/* Progress header */}
+      <div className="px-4 pt-2.5 pb-2" style={{ background: "#f5f4f2", borderBottom: "1px solid #e2e0dc" }}>
         <div className="flex items-center gap-2 mb-1.5">
-          <SectionMeta>Checklist</SectionMeta>
-          <span className="ml-auto text-[9.5px] font-mono text-ruberra-muted tabular-nums">
+          <span className="text-[9.5px] font-semibold tracking-[0.12em] uppercase text-ruberra-muted/70 select-none">
+            Checklist
+          </span>
+          <span className="ml-auto font-mono text-[9.5px] text-ruberra-muted tabular-nums">
             {doneCount}/{total}
           </span>
-          {allDone && <Chip label="complete" tone="ok" />}
+          {allDone && (
+            <span className="font-mono text-[10px]" style={{ color: INLINE.green }}>✓ complete</span>
+          )}
         </div>
         <div className="h-1 rounded-full overflow-hidden" style={{ background: "#e2e0dc" }}>
           <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${pct}%`,
-              background: allDone ? C.ok.dot : C.active.dot,
-            }}
+            className="h-full rounded-full"
+            style={{ width: `${pct}%`, background: allDone ? C.ok.dot : C.active.dot, transition: "width 0.4s ease" }}
           />
         </div>
       </div>
 
-      {/* Items */}
-      <ul className="px-4 py-3 space-y-1.5">
+      {/* Items — ● dot per item */}
+      <div className="px-4 py-2.5 space-y-0.5">
         {block.items.map((item, i) => (
-          <li key={i} className="flex items-start gap-2.5">
+          <div key={i} className="flex items-baseline gap-2 py-0.5">
             <span
-              className="shrink-0 w-4 h-4 rounded flex items-center justify-center mt-0.5"
-              style={{
-                background: item.done ? C.ok.bg : "transparent",
-                border: `1.5px solid ${item.done ? C.ok.border : "#d6d4cf"}`,
-                color: C.ok.text,
-              }}
+              className="font-mono text-[11px] shrink-0 select-none"
+              style={{ color: item.done ? C.ok.dot : "#d6d4cf" }}
             >
-              {item.done && (
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                  <path d="M1.5 4l2 2L6.5 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
+              ●
             </span>
             <span
-              className={[
-                "text-[13.5px] leading-[1.65] flex-1",
-                item.done ? "text-ruberra-subtext/60 line-through" : "text-ruberra-text",
-              ].join(" ")}
+              className={`text-[13px] leading-[1.6] flex-1 ${item.done ? "line-through" : ""}`}
+              style={{ color: item.done ? INLINE.muted : "inherit" }}
             >
               {item.text}
             </span>
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
 
-// TABLE — specification matrix
+// ---------------------------------------------------------------------------
+// TABLE — semantic inline value coloring, no uniform gray
+// ---------------------------------------------------------------------------
+
+// Detect value tone from content
+function inferValueTone(value: string): string | null {
+  const v = value.toLowerCase();
+  if (/^(yes|confirmed|pass|complete|done|true|high|ok|✓)/.test(v)) return INLINE.green;
+  if (/^(no|fail|false|blocked|err|error|critical)/.test(v)) return INLINE.red;
+  if (/^(warn|warning|partial|medium|pending|tbd|unknown)/.test(v)) return INLINE.amber;
+  if (/^[A-Z][a-zA-Z]+\s*[{<([]/.test(value) || /^React\.|^Node\.|^string$|^number$|^boolean$|^void$/.test(value)) return INLINE.type;
+  return null;
+}
+
 function TableRenderer({ block }: { block: TableBlock }) {
   return (
-    <div
-      className="rounded-lg overflow-hidden"
-      style={{ border: "1px solid #e2e0dc" }}
-    >
-      <div
-        className="flex items-center px-4 py-1.5"
-        style={{ background: "#f5f4f2", borderBottom: "1px solid #e2e0dc" }}
-      >
-        <SectionMeta>Data</SectionMeta>
-        <span className="ml-auto text-[9px] font-mono text-ruberra-muted/50 tabular-nums">
-          {block.rows.length} rows
+    <div className="rounded overflow-hidden" style={{ border: "1px solid #e2e0dc" }}>
+      <div className="flex items-center px-4 py-1.5" style={{ background: "#f5f4f2", borderBottom: "1px solid #e2e0dc" }}>
+        <span className="text-[9.5px] font-semibold tracking-[0.12em] uppercase text-ruberra-muted/70 select-none">
+          Data
+        </span>
+        <span className="ml-auto font-mono text-[9px] text-ruberra-muted/40 tabular-nums">
+          {block.rows.length}
         </span>
       </div>
       <table className="w-full">
         <tbody>
-          {block.rows.map((row, i) => (
-            <tr
-              key={i}
-              style={{ borderBottom: i < block.rows.length - 1 ? "1px solid #ebe9e5" : undefined }}
-            >
-              <td
-                className="px-4 py-2 text-[11.5px] font-medium text-ruberra-subtext w-[36%] align-top leading-relaxed"
-                style={{ background: i % 2 === 0 ? "#fafaf8" : "#f7f6f4" }}
+          {block.rows.map((row, i) => {
+            const valueTone = inferValueTone(row.value);
+            return (
+              <tr
+                key={i}
+                style={{ borderBottom: i < block.rows.length - 1 ? "1px solid #ebe9e5" : undefined }}
               >
-                {row.key}
-              </td>
-              <td className="px-4 py-2 text-[13px] text-ruberra-text align-top leading-relaxed">
-                {row.value}
-              </td>
-            </tr>
-          ))}
+                <td
+                  className="px-4 py-2 text-[11.5px] font-medium w-[36%] align-top leading-relaxed"
+                  style={{ background: i % 2 === 0 ? "#fafaf8" : "#f7f6f4", color: "#8a8780" }}
+                >
+                  {row.key}
+                </td>
+                <td
+                  className="px-4 py-2 text-[13px] align-top leading-relaxed"
+                  style={{ color: valueTone ?? "#1a1916" }}
+                >
+                  {row.value}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
 }
 
-// STATUS — operational condition panel
+// ---------------------------------------------------------------------------
+// STATUS — full-width diff rows, deep color stripes, Claude Code reference
+// ---------------------------------------------------------------------------
+const STATUS_STRIPE: Record<string, { leftStripe: string; rowBg: string; dotColor: string; labelColor: string; badge: string }> = {
+  ok:   { leftStripe: C.ok.stripe,      rowBg: C.ok.rowBg,      dotColor: C.ok.dot,      labelColor: "#1a1916", badge: "ok"   },
+  warn: { leftStripe: C.warn.stripe,    rowBg: C.warn.rowBg,    dotColor: C.warn.dot,    labelColor: "#1a1916", badge: "warn" },
+  err:  { leftStripe: C.err.stripe,     rowBg: C.err.rowBg,     dotColor: C.err.dot,     labelColor: "#1a1916", badge: "err"  },
+  info: { leftStripe: C.info.stripe,    rowBg: C.info.rowBg,    dotColor: C.info.dot,    labelColor: "#6b6966", badge: "info" },
+};
+
 function StatusRenderer({ block }: { block: StatusBlock }) {
-  // Summary chips: count per state
   const counts = block.rows.reduce<Record<string, number>>((acc, r) => {
     acc[r.state] = (acc[r.state] ?? 0) + 1;
     return acc;
   }, {});
 
   return (
-    <div
-      className="rounded-lg overflow-hidden"
-      style={{ border: "1px solid #e2e0dc" }}
-    >
-      {/* Header with summary */}
-      <div
-        className="flex items-center gap-2 px-4 py-1.5"
-        style={{ background: "#f5f4f2", borderBottom: "1px solid #e2e0dc" }}
-      >
-        <SectionMeta>Status</SectionMeta>
-        <div className="ml-auto flex items-center gap-1.5">
-          {counts.ok   && <Chip label={`${counts.ok} ok`}   tone="ok"   />}
-          {counts.warn && <Chip label={`${counts.warn} warn`} tone="warn" />}
-          {counts.err  && <Chip label={`${counts.err} err`}  tone="err"  />}
+    <div className="rounded overflow-hidden" style={{ border: "1px solid #e2e0dc" }}>
+      {/* Header with counts */}
+      <div className="flex items-center gap-2 px-4 py-1.5" style={{ background: "#f5f4f2", borderBottom: "1px solid #e2e0dc" }}>
+        <span className="text-[9.5px] font-semibold tracking-[0.12em] uppercase text-ruberra-muted/70 select-none">
+          Status
+        </span>
+        <div className="ml-auto flex items-center gap-3">
+          {counts.ok   && <span className="font-mono text-[10px]" style={{ color: INLINE.green }}>{counts.ok} ok</span>}
+          {counts.warn && <span className="font-mono text-[10px]" style={{ color: INLINE.amber }}>{counts.warn} warn</span>}
+          {counts.err  && <span className="font-mono text-[10px]" style={{ color: INLINE.red   }}>{counts.err} err</span>}
         </div>
       </div>
 
-      {/* Rows */}
+      {/* Full-width diff rows */}
       {block.rows.map((row, i) => {
-        const c = C[row.state];
+        const s = STATUS_STRIPE[row.state] ?? STATUS_STRIPE.info;
         return (
           <div
             key={i}
-            className="flex items-center gap-3 px-4 py-2"
+            className="flex items-center gap-3 px-0"
             style={{
-              background: c.bg,
-              borderBottom: i < block.rows.length - 1 ? "1px solid #ebe9e5" : undefined,
+              background: s.rowBg,
+              borderBottom: i < block.rows.length - 1 ? "1px solid rgba(26,25,22,0.06)" : undefined,
+              borderLeft: `3px solid ${s.leftStripe}`,
             }}
           >
-            <Dot tone={row.state} />
-            <span className="text-[13px] text-ruberra-text flex-1 leading-relaxed">{row.label}</span>
-            <span
-              className="text-[9px] font-semibold uppercase tracking-[0.09em] shrink-0"
-              style={{ color: c.text }}
-            >
-              {row.state}
+            {/* Dot */}
+            <span className="font-mono text-[11px] pl-3 shrink-0 select-none" style={{ color: s.dotColor }}>●</span>
+            {/* Label */}
+            <span className="text-[13px] leading-relaxed flex-1 py-2" style={{ color: s.labelColor }}>{row.label}</span>
+            {/* State badge — right-aligned mono, no border */}
+            <span className="font-mono text-[10px] pr-4 shrink-0 select-none" style={{ color: s.dotColor }}>
+              {s.badge}
             </span>
           </div>
         );
@@ -420,41 +406,37 @@ function StatusRenderer({ block }: { block: StatusBlock }) {
   );
 }
 
-// PROGRESS — labeled bars with value-based color
+// ---------------------------------------------------------------------------
+// PROGRESS — value-colored bars
+// ---------------------------------------------------------------------------
 function ProgressRenderer({ block }: { block: ProgressBlock }) {
   return (
-    <div
-      className="rounded-lg overflow-hidden"
-      style={{ border: "1px solid #e2e0dc" }}
-    >
-      <div
-        className="flex items-center px-4 py-1.5"
-        style={{ background: "#f5f4f2", borderBottom: "1px solid #e2e0dc" }}
-      >
-        <SectionMeta>Progress</SectionMeta>
+    <div className="rounded overflow-hidden" style={{ border: "1px solid #e2e0dc" }}>
+      <div className="flex items-center px-4 py-1.5" style={{ background: "#f5f4f2", borderBottom: "1px solid #e2e0dc" }}>
+        <span className="text-[9.5px] font-semibold tracking-[0.12em] uppercase text-ruberra-muted/70 select-none">
+          Progress
+        </span>
       </div>
       <div className="px-4 py-3 space-y-3">
         {block.rows.map((row, i) => {
-          const barColor = row.value >= 80
-            ? C.ok.dot
-            : row.value >= 40
-            ? C.active.dot
-            : C.warn.dot;
+          const barColor =
+            row.value >= 80 ? C.ok.dot :
+            row.value >= 40 ? C.active.dot :
+            C.warn.dot;
+          const valColor =
+            row.value >= 80 ? INLINE.green :
+            row.value >= 40 ? C.active.text :
+            INLINE.amber;
           return (
             <div key={i}>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[12px] text-ruberra-subtext">{row.label}</span>
-                <span
-                  className="text-[10px] font-mono tabular-nums font-semibold"
-                  style={{ color: barColor }}
-                >
-                  {row.value}%
-                </span>
+                <span className="font-mono text-[10px] font-semibold tabular-nums" style={{ color: valColor }}>{row.value}%</span>
               </div>
               <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#e2e0dc" }}>
                 <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${row.value}%`, background: barColor }}
+                  className="h-full rounded-full"
+                  style={{ width: `${row.value}%`, background: barColor, transition: "width 0.4s ease" }}
                 />
               </div>
             </div>
@@ -465,27 +447,33 @@ function ProgressRenderer({ block }: { block: ProgressBlock }) {
   );
 }
 
-// SIGNAL — compact horizontal metadata strip (confidence, phase, next move)
+// ---------------------------------------------------------------------------
+// SIGNAL — Claude Code meta strip: * key value, no border, no container
+// ---------------------------------------------------------------------------
 function SignalRenderer({ block }: { block: SignalBlock }) {
+  const toneColor = (tone: string | undefined): string => {
+    switch (tone) {
+      case "ok":      return INLINE.green;
+      case "warn":    return INLINE.amber;
+      case "err":     return INLINE.red;
+      case "active":  return C.active.text;
+      case "info":    return INLINE.muted;
+      default:        return INLINE.muted;
+    }
+  };
+
   return (
-    <div
-      className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3 py-2 rounded-lg"
-      style={{ background: "#f5f4f2", border: "1px solid #e8e6e2" }}
-    >
-      {block.pairs.map((pair, i) => {
-        const tone = pair.tone ?? "neutral";
-        const c = C[tone];
-        return (
-          <div key={i} className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[10px] font-medium text-ruberra-muted uppercase tracking-[0.08em] select-none">
-              {pair.key}
-            </span>
-            <span className="text-[10px] font-mono" style={{ color: c.text }}>
-              {pair.value}
-            </span>
-          </div>
-        );
-      })}
+    <div className="space-y-0.5 py-0.5">
+      {block.pairs.map((pair, i) => (
+        <div key={i} className="flex items-baseline gap-2 font-mono text-[12px]">
+          {/* amber * glyph — Claude Code meta marker */}
+          <span className="shrink-0 select-none" style={{ color: INLINE.amber }}>*</span>
+          {/* key in muted */}
+          <span className="shrink-0 select-none" style={{ color: INLINE.muted }}>{pair.key}</span>
+          {/* value in semantic color */}
+          <span style={{ color: toneColor(pair.tone) }}>{pair.value}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -493,7 +481,6 @@ function SignalRenderer({ block }: { block: SignalBlock }) {
 // ---------------------------------------------------------------------------
 // Dispatch
 // ---------------------------------------------------------------------------
-
 function BlockRenderer({ block }: { block: OutputBlock }) {
   switch (block.type) {
     case "prose":     return <ProseRenderer text={block.text} />;
@@ -513,7 +500,6 @@ function BlockRenderer({ block }: { block: OutputBlock }) {
 // ---------------------------------------------------------------------------
 // Root
 // ---------------------------------------------------------------------------
-
 export default function RenderedOutput({ content, streaming }: RenderedOutputProps) {
   const blocks = parseBlocks(content);
 
