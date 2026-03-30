@@ -36,9 +36,9 @@ export default function RuberraShell() {
   const [loading,      setLoading]      = useState<TabLoading>(emptyRecord(false));
   const [signals,      setSignals]      = useState<TabSignals>(emptyRecord<SignalStatus>("idle"));
 
-  const [labView,      setLabView]      = useState<LabView>("home");
-  const [schoolView,   setSchoolView]   = useState<SchoolView>("curriculum");
-  const [creationView, setCreationView] = useState<CreationView>("create");
+  const [labView,      setLabView]      = useState<LabView>("browse");
+  const [schoolView,   setSchoolView]   = useState<SchoolView>("browse");
+  const [creationView, setCreationView] = useState<CreationView>("browse");
 
   const [notes, setNotes]   = useState<FloatingNote[]>([]);
   const [theme, setTheme]   = useState<Theme>("light");
@@ -171,16 +171,18 @@ export default function RuberraShell() {
 
         {/* Content + status bar */}
         <div className="flex flex-col flex-1 min-h-0 min-w-0">
-          <MainSurface
-            activeTab={activeTab}
-            messages={messages[activeTab]}
-            isLoading={loading[activeTab]}
-            onSend={handleSend}
-            labView={labView}
-            schoolView={schoolView}
-            creationView={creationView}
-            onLabView={setLabView}
-          />
+        <MainSurface
+          activeTab={activeTab}
+          messages={messages[activeTab]}
+          isLoading={loading[activeTab]}
+          onSend={handleSend}
+          labView={labView}
+          schoolView={schoolView}
+          creationView={creationView}
+          onLabView={setLabView}
+          onSchoolView={setSchoolView}
+          onCreationView={setCreationView}
+        />
 
           {/* Status bar — matches reference bottom strip */}
           <div

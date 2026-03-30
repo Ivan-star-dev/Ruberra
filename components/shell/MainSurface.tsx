@@ -8,29 +8,43 @@ import {
   type SchoolView,
   type CreationView,
 } from "./types";
+import LabBrowse        from "../lab/LabBrowse";
 import LabHome          from "../lab/LabHome";
 import LabCodeOrgan     from "../lab/LabCodeOrgan";
+import SchoolBrowse     from "../school/SchoolBrowse";
 import SchoolSurface    from "../school/SchoolSurface";
+import CreationBrowse   from "../creation/CreationBrowse";
 import CreationSurface  from "../creation/CreationSurface";
 
 interface MainSurfaceProps {
-  activeTab:    Tab;
-  messages:     Message[];
-  isLoading:    boolean;
-  onSend:       (text: string) => void;
-  labView:      LabView;
-  schoolView:   SchoolView;
-  creationView: CreationView;
-  onLabView:    (v: LabView) => void;
+  activeTab:      Tab;
+  messages:       Message[];
+  isLoading:      boolean;
+  onSend:         (text: string) => void;
+  labView:        LabView;
+  schoolView:     SchoolView;
+  creationView:   CreationView;
+  onLabView:      (v: LabView) => void;
+  onSchoolView:   (v: SchoolView) => void;
+  onCreationView: (v: CreationView) => void;
 }
 
 export default function MainSurface({
   activeTab, messages, isLoading, onSend,
-  labView, schoolView, creationView, onLabView,
+  labView, schoolView, creationView,
+  onLabView, onSchoolView, onCreationView,
 }: MainSurfaceProps) {
 
   /* ── Lab ── */
   if (activeTab === "lab") {
+    if (labView === "browse") {
+      return (
+        <LabBrowse
+          onNavigate={v => onLabView(v)}
+          onSend={text => { onLabView("research"); onSend(text); }}
+        />
+      );
+    }
     if (labView === "home" || labView === "research" || labView === "analysis" || labView === "general") {
       const hasMessages = messages.length > 0;
       if (!hasMessages || labView === "home") {
@@ -41,7 +55,6 @@ export default function MainSurface({
           />
         );
       }
-      /* If messages exist, show chat thread */
       return (
         <ChatSurface
           activeTab={activeTab}
@@ -60,11 +73,22 @@ export default function MainSurface({
 
   /* ── School ── */
   if (activeTab === "school") {
+    if (schoolView === "browse") {
+      return <SchoolBrowse onNavigate={v => onSchoolView(v)} />;
+    }
     return <SchoolSurface />;
   }
 
   /* ── Creation ── */
   if (activeTab === "creation") {
+    if (creationView === "browse") {
+      return (
+        <CreationBrowse
+          onNavigate={v => onCreationView(v)}
+          onSend={text => { onCreationView("create"); onSend(text); }}
+        />
+      );
+    }
     return <CreationSurface messages={messages} isLoading={isLoading} onSend={onSend} />;
   }
 

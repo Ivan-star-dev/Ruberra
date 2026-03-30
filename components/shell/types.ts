@@ -11,15 +11,28 @@ export interface Message {
 export type SignalStatus = "idle" | "streaming" | "completed" | "error";
 
 /* Lab views */
-export type LabView = "home" | "research" | "analysis" | "code" | "general";
+export type LabView =
+  | "browse"      /* discovery home */
+  | "home"        /* investigate / action cards */
+  | "research"
+  | "analysis"
+  | "code"
+  | "general";
 
 /* School views */
-export type SchoolView = "curriculum" | "lesson" | "archive";
+export type SchoolView =
+  | "browse"      /* discovery home */
+  | "curriculum"
+  | "lesson"
+  | "archive";
 
 /* Creation views */
-export type CreationView = "create" | "archive";
+export type CreationView =
+  | "browse"      /* discovery home */
+  | "create"
+  | "archive";
 
-/* Creation output types (left panel) */
+/* Creation output types */
 export type OutputType = "prose" | "visual" | "code" | "document" | "voice";
 
 /* Creation parameters */

@@ -100,6 +100,22 @@ export default function SideRail({
       {/* Top group — navigation icons */}
       <div className="flex flex-col items-center w-full pt-2">
 
+        {/* Browse / discover */}
+        <RailItem
+          label="Browse"
+          active={
+            (activeTab === "lab" && labView === "browse") ||
+            (activeTab === "school" && schoolView === "browse") ||
+            (activeTab === "creation" && creationView === "browse")
+          }
+          onClick={() => {
+            if (activeTab === "lab") onLabView("browse");
+            else if (activeTab === "school") onSchoolView("browse");
+            else onCreationView("browse");
+          }}
+          icon={<IcBrowse />}
+        />
+
         {/* Chat / home */}
         <RailItem
           label="Chat"
@@ -170,6 +186,17 @@ export default function SideRail({
 }
 
 /* ── Icons — 18px, clean strokes ──────────────────────────── */
+
+function IcBrowse() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+      <rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+      <rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+      <rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+      <rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+    </svg>
+  );
+}
 
 function IcMessage() {
   return (
