@@ -6,7 +6,7 @@ import {
   type MessageBlock,
 } from "@/components/shell/types";
 
-const VALID_TYPES = new Set<string>(["verdict", "execution", "lesson", "creation", "report"]);
+const VALID_TYPES = new Set<string>(["verdict", "execution", "lesson", "creation", "report", "signal"]);
 
 const VALID_STATUSES = new Set<string>([
   "pass", "partial", "fail", "live", "done", "warn",

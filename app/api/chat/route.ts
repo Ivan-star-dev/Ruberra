@@ -67,7 +67,14 @@ SECTION:Key Findings
 SECTION:Confidence
 - Core reasoning chain | sound through step 3 | pass
 - Step 4 onward | conditional on noise floor | partial
-NEXT:Isolate the step-4 dependency before finalizing the conclusion.`,
+NEXT:Isolate the step-4 dependency before finalizing the conclusion.
+
+TYPE:signal
+TITLE:PULSE
+SECTION:Meta
+- Confidence | High | pass
+- Phase | Analysis | running
+- Next | Dependency check | warn`,
 
     "That's an interesting hypothesis. If we hold the first assumption constant and vary the second, the output diverges in a non-linear way around the boundary condition. The non-linearity matters because it means **small perturbations in the input produce disproportionate output variance** — which is exactly where naive models fail.",
 
@@ -119,7 +126,14 @@ SECTION:Steps
 - Implement against constraints | let constraints drive, not details | running
 - Add error boundary around async path | required before any IO | pending
 - Handle empty data source state | fallback must be explicit | pending
-NEXT:Lock the interface contract before touching implementation.`,
+NEXT:Lock the interface contract before touching implementation.
+
+TYPE:signal
+TITLE:PULSE
+SECTION:Meta
+- Phase | Implementation | running
+- Blocking | Error boundary | warn
+- Next | Async path first | warn`,
 
     "The rough shape looks solid. Two things to tighten before shipping: the **error boundary around the async path** (currently unhandled), and the **fallback state when the data source returns empty** — both are likely failure modes in production.",
 

@@ -3,8 +3,8 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { type Tab, type Message } from "./types";
-import { BlockRenderer } from "./blocks";
+import { type Tab, type Message, type StatusFlag } from "./types";
+import { BlockRenderer, StatusBadge } from "./blocks";
 
 const MD_COMPONENTS = {
   p:      ({ children }: { children?: React.ReactNode }) => (
@@ -140,9 +140,20 @@ export default function MainSurface({
             </div>
           ) : (
             <div className="space-y-4">
-              {messages.map((msg) => (
-                <MessageBubble key={msg.id} message={msg} />
-              ))}
+              {((): React.ReactNode[] => {
+                let aIdx = 0;
+                return messages.map((msg) => {
+                  if (msg.role === "assistant") aIdx++;
+                  return (
+                    <MessageBubble
+                      key={msg.id}
+                      message={msg}
+                      tab={activeTab}
+                      assistantIndex={aIdx}
+                    />
+                  );
+                });
+              })()}
             </div>
           )}
         </div>
@@ -217,51 +228,103 @@ export default function MainSurface({
   );
 }
 
-function MessageBubble({ message }: { message: Message }) {
+// ─── ResponseHeader ───────────────────────────────────────────────────────────
+
+const CHAMBER_LABEL: Record<Tab, string> = {
+  lab:      "LAB",
+  school:   "SCHOOL",
+  creation: "CREATION",
+};
+
+function ResponseHeader({
+  tab,
+  index,
+  status,
+}: {
+  tab:     Tab;
+  index:   number;
+  status?: StatusFlag;
+}) {
+  return (
+    <div className="flex items-center justify-between px-3 py-1.5 bg-ruberra-surface border border-ruberra-border rounded-t-xl border-b border-b-ruberra-border/60">
+      <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.15em] text-ruberra-subtext">
+        {CHAMBER_LABEL[tab]}
+      </span>
+      <div className="flex items-center gap-2">
+        {status && <StatusBadge status={status} />}
+        <span className="font-mono text-[10px] text-ruberra-muted">
+          #{String(index).padStart(2, "0")}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── MessageBubble ────────────────────────────────────────────────────────────
+
+function MessageBubble({
+  message,
+  tab,
+  assistantIndex,
+}: {
+  message:        Message;
+  tab:            Tab;
+  assistantIndex: number;
+}) {
   const isUser = message.role === "user";
 
-  // Parsed structured response — render block engine
-  if (!isUser && message.blocks && message.blocks.length > 0) {
+  // User messages — warm stone bubble, no header
+  if (isUser) {
     return (
-      <div className="flex justify-start">
-        <div className="max-w-[72%] w-full">
-          <BlockRenderer blocks={message.blocks} />
+      <div className="flex justify-end">
+        <div className="max-w-[72%] rounded-xl px-4 py-2.5 text-sm leading-relaxed bg-ruberra-stone text-ruberra-text shadow-sm rounded-br-sm">
+          {message.content}
         </div>
       </div>
     );
   }
 
-  // Structured format detected during streaming — content not yet parsed
-  const isStructuredPending =
-    !isUser && !message.blocks && message.content.startsWith("TYPE:");
+  // Assistant — always gets a ResponseHeader
+  const firstStatus = message.blocks?.[0]?.status;
+  const isStructuredPending = !message.blocks && message.content.startsWith("TYPE:");
 
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={[
-          "max-w-[72%] rounded-xl px-4 py-2.5 text-sm leading-relaxed",
-          isUser
-            ? "bg-ruberra-stone text-ruberra-text shadow-sm rounded-br-sm"
-            : "bg-white border border-ruberra-border text-ruberra-text rounded-bl-sm",
-        ].join(" ")}
-      >
-        {isStructuredPending ? (
-          <span className="text-ruberra-muted italic">Composing response…</span>
-        ) : message.content ? (
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
-            {message.content}
-          </ReactMarkdown>
-        ) : (
-          <span className="inline-flex gap-0.5 items-center h-4">
-            {[0, 1, 2].map((i) => (
-              <span
-                key={i}
-                className="w-1 h-1 rounded-full bg-ruberra-muted animate-bounce"
-                style={{ animationDelay: `${i * 120}ms` }}
-              />
-            ))}
-          </span>
-        )}
+    <div className="flex justify-start">
+      <div className="w-full max-w-[78%]">
+        <ResponseHeader tab={tab} index={assistantIndex} status={firstStatus} />
+        <div className="border border-t-0 border-ruberra-border rounded-b-xl overflow-hidden bg-white">
+          {/* Structured blocks */}
+          {message.blocks && message.blocks.length > 0 ? (
+            <div className="p-3">
+              <BlockRenderer blocks={message.blocks} />
+            </div>
+          ) : isStructuredPending ? (
+            /* Streaming structured format — not yet parsed */
+            <div className="px-4 py-3">
+              <span className="text-ruberra-muted italic text-sm">Composing response…</span>
+            </div>
+          ) : message.content ? (
+            /* Prose — markdown rendered */
+            <div className="px-4 py-3 text-sm leading-relaxed text-ruberra-text">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            /* Loading dots */
+            <div className="px-4 py-3">
+              <span className="inline-flex gap-0.5 items-center h-4">
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    className="w-1 h-1 rounded-full bg-ruberra-muted animate-bounce"
+                    style={{ animationDelay: `${i * 120}ms` }}
+                  />
+                ))}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

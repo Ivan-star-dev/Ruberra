@@ -1,6 +1,6 @@
 export type Tab = "lab" | "school" | "creation";
 
-export type BlockType = "verdict" | "execution" | "lesson" | "creation" | "report";
+export type BlockType = "verdict" | "execution" | "lesson" | "creation" | "report" | "signal";
 
 export type StatusFlag =
   | "pass"
