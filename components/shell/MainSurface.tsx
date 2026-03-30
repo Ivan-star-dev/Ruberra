@@ -86,22 +86,59 @@ function EmptyState({ tab }: { tab: Tab }) {
   );
 }
 
-// Turn number context passed via prop
-function ResponseHeader({ tab, turn }: { tab: Tab; turn: number }) {
-  const chamberTag: Record<Tab, string> = {
-    lab:      "LAB",
-    school:   "SCHOOL",
-    creation: "CREATION",
-  };
+// Chamber accent colors for the response header left stripe
+const CHAMBER_ACCENT: Record<Tab, string> = {
+  lab:      "#1a1916",   // near-black — analytical, terminal
+  school:   "#5b52e8",   // accent indigo — progressive, structured
+  creation: "#3d9b6e",   // pulse green — generative, build
+};
+
+const CHAMBER_TAG: Record<Tab, string> = {
+  lab:      "LAB",
+  school:   "SCHOOL",
+  creation: "CREATION",
+};
+
+function ResponseHeader({
+  tab,
+  turn,
+  streaming,
+}: {
+  tab: Tab;
+  turn: number;
+  streaming?: boolean;
+}) {
+  const accentColor = CHAMBER_ACCENT[tab];
   return (
     <div
-      className="flex items-center gap-2 px-4 py-1.5 rounded-t-2xl"
-      style={{ borderBottom: "1px solid #ebe9e5", background: "#fafaf8" }}
+      className="flex items-center gap-2.5 px-3 py-1.5"
+      style={{
+        borderBottom: "1px solid #e8e6e2",
+        background: "#f5f4f2",
+        borderLeft: `3px solid ${accentColor}`,
+      }}
     >
-      <span className="text-[9px] font-semibold tracking-[0.12em] text-ruberra-muted/70 uppercase select-none">
-        {chamberTag[tab]}
+      {/* Live streaming dot */}
+      {streaming ? (
+        <span
+          className="w-1.5 h-1.5 rounded-full shrink-0 animate-pulse"
+          style={{ background: accentColor }}
+        />
+      ) : (
+        <span
+          className="w-1.5 h-1.5 rounded-full shrink-0 opacity-30"
+          style={{ background: accentColor }}
+        />
+      )}
+
+      <span
+        className="text-[9.5px] font-semibold tracking-[0.12em] uppercase select-none"
+        style={{ color: accentColor, opacity: streaming ? 1 : 0.6 }}
+      >
+        {CHAMBER_TAG[tab]}
       </span>
-      <span className="text-[9px] font-mono text-ruberra-muted/40 select-none tabular-nums ml-auto">
+
+      <span className="text-[9px] font-mono text-ruberra-muted/50 select-none tabular-nums ml-auto">
         #{turn}
       </span>
     </div>
@@ -112,29 +149,24 @@ function MessageBubble({ msg, turnIndex }: { msg: Message; turnIndex: number }) 
   const isUser = msg.role === "user";
   return (
     <div className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={[
-          isUser
-            ? "max-w-[68%] rounded-2xl rounded-br-md px-4 py-2.5 bg-[#e8e6e2] text-ruberra-text text-[13.5px] leading-[1.65]"
-            : "w-full rounded-2xl rounded-bl-md overflow-hidden bg-white text-ruberra-text",
-        ].join(" ")}
-        style={{
-          boxShadow: isUser
-            ? "0 1px 2px rgba(26,25,22,0.05)"
-            : "0 1px 3px rgba(26,25,22,0.07), 0 0 0 1px #e8e6e2",
-        }}
-      >
-        {isUser ? (
-          msg.content
-        ) : (
-          <>
-            <ResponseHeader tab={msg.tab} turn={turnIndex} />
-            <div className="px-4 py-3">
-              <RenderedOutput content={msg.content} streaming={msg.streaming} />
-            </div>
-          </>
-        )}
-      </div>
+      {isUser ? (
+        <div
+          className="max-w-[68%] rounded-2xl rounded-br-md px-4 py-2.5 bg-[#e8e6e2] text-ruberra-text text-[13.5px] leading-[1.65]"
+          style={{ boxShadow: "0 1px 2px rgba(26,25,22,0.05)" }}
+        >
+          {msg.content}
+        </div>
+      ) : (
+        <div
+          className="w-full rounded-2xl rounded-bl-md overflow-hidden bg-white"
+          style={{ boxShadow: "0 1px 3px rgba(26,25,22,0.07), 0 0 0 1px #e2e0dc" }}
+        >
+          <ResponseHeader tab={msg.tab} turn={turnIndex} streaming={msg.streaming} />
+          <div className="px-4 py-3.5">
+            <RenderedOutput content={msg.content} streaming={msg.streaming} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -209,15 +241,12 @@ export default function MainSurface({ activeTab, messages, onSubmit, streaming }
       {/* Input bar */}
       <div className="px-10 pb-7 pt-2 max-w-[680px] mx-auto w-full">
         <div
-          className={[
-            "flex items-end gap-3 bg-white rounded-2xl px-4 py-3 transition-shadow duration-150",
-          ].join(" ")}
+          className="flex items-end gap-3 bg-white rounded-2xl px-4 py-3 transition-shadow duration-150"
           style={{
             boxShadow: streaming
               ? "0 0 0 1px #e2e0dc"
               : "0 0 0 1px #e2e0dc, 0 1px 4px rgba(26,25,22,0.05)",
           }}
-          onFocus={() => {}}
         >
           <textarea
             ref={inputRef}

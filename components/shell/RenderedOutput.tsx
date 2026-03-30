@@ -33,30 +33,13 @@ const C = {
   active:  { dot: "#5b52e8", text: "#4a42cc", bg: "rgba(91,82,232,0.08)",   border: "rgba(91,82,232,0.25)"   },
 };
 
-// ---------------------------------------------------------------------------
-// Shared markdown components for prose blocks
-// ---------------------------------------------------------------------------
-const MD: Record<string, React.ComponentType<{ children?: React.ReactNode; className?: string; href?: string }>> = {
-  p:          ({ children }) => <p className="text-[13.5px] leading-[1.65] text-ruberra-text mb-2 last:mb-0">{children}</p>,
-  strong:     ({ children }) => <strong className="font-semibold text-ruberra-text">{children}</strong>,
-  em:         ({ children }) => <em className="italic text-ruberra-subtext">{children}</em>,
-  ul:         ({ children }) => <ul className="my-1.5 space-y-0.5 pl-4">{children}</ul>,
-  ol:         ({ children }) => <ol className="my-1.5 space-y-0.5 pl-4 list-decimal">{children}</ol>,
-  li:         ({ children }) => <li className="text-[13.5px] leading-[1.65] text-ruberra-text list-disc marker:text-ruberra-muted">{children}</li>,
-  hr:         () => <hr className="my-3 border-ruberra-border" />,
-  h1:         ({ children }) => <h1 className="text-[15px] font-semibold text-ruberra-text mt-3 mb-1.5 tracking-tight">{children}</h1>,
-  h2:         ({ children }) => <h2 className="text-[14px] font-semibold text-ruberra-text mt-3 mb-1 tracking-tight">{children}</h2>,
-  h3:         ({ children }) => <h3 className="text-[13.5px] font-medium text-ruberra-text mt-2.5 mb-1">{children}</h3>,
-  blockquote: ({ children }) => <blockquote className="pl-3 my-2 text-ruberra-subtext text-[13px] leading-relaxed" style={{ borderLeft: "2px solid #d6d4cf" }}>{children}</blockquote>,
-  a:          ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-ruberra-accent underline underline-offset-2 hover:opacity-75 transition-opacity">{children}</a>,
-  pre:        ({ children }) => <pre className="rounded-lg px-4 py-3 overflow-x-auto my-2" style={{ background: "#f0efed", border: "1px solid #e2e0dc" }}>{children}</pre>,
-  code:       ({ children, className }) => {
-    if (!className) {
-      return <code className="font-mono text-[11.5px] px-1.5 py-0.5 rounded text-ruberra-text/90 align-baseline" style={{ background: "#ebe9e5", border: "1px solid #d6d4cf" }}>{children}</code>;
-    }
-    return <code className="font-mono text-[12px] text-ruberra-text/90 leading-relaxed">{children}</code>;
-  },
-};
+// p inside li (loose lists): render as span to avoid block-level nesting + margin
+function MDParagraph({ children, node }: { children?: React.ReactNode; node?: { tagName?: string } }) {
+  if (node?.tagName === "li") {
+    return <span className="text-[13.5px] leading-[1.65] text-ruberra-text">{children}</span>;
+  }
+  return <p className="text-[13.5px] leading-[1.65] text-ruberra-text mb-2 last:mb-0">{children}</p>;
+}
 
 // ---------------------------------------------------------------------------
 // Small shared primitives
@@ -97,7 +80,30 @@ function SectionMeta({ children }: { children: React.ReactNode }) {
 
 function ProseRenderer({ text }: { text: string }) {
   return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD as Parameters<typeof ReactMarkdown>[0]["components"]}>
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p:          MDParagraph,
+        strong:     ({ children }) => <strong className="font-semibold text-ruberra-text">{children}</strong>,
+        em:         ({ children }) => <em className="italic text-ruberra-subtext">{children}</em>,
+        ul:         ({ children }) => <ul className="my-1.5 space-y-0.5 pl-4 list-disc marker:text-ruberra-muted">{children}</ul>,
+        ol:         ({ children }) => <ol className="my-1.5 space-y-0.5 pl-4 list-decimal marker:text-ruberra-muted">{children}</ol>,
+        li:         ({ children }) => <li className="text-[13.5px] leading-[1.65] text-ruberra-text">{children}</li>,
+        hr:         () => <hr className="my-3 border-ruberra-border" />,
+        h1:         ({ children }) => <h1 className="text-[15px] font-semibold text-ruberra-text mt-3 mb-1.5 tracking-tight">{children}</h1>,
+        h2:         ({ children }) => <h2 className="text-[14px] font-semibold text-ruberra-text mt-3 mb-1 tracking-tight">{children}</h2>,
+        h3:         ({ children }) => <h3 className="text-[13.5px] font-medium text-ruberra-text mt-2.5 mb-1">{children}</h3>,
+        blockquote: ({ children }) => <blockquote className="pl-3 my-2 text-ruberra-subtext text-[13px] leading-relaxed" style={{ borderLeft: "2px solid #d6d4cf" }}>{children}</blockquote>,
+        a:          ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-ruberra-accent underline underline-offset-2 hover:opacity-75 transition-opacity">{children}</a>,
+        pre:        ({ children }) => <pre className="rounded-lg px-4 py-3 overflow-x-auto my-2" style={{ background: "#f0efed", border: "1px solid #e2e0dc" }}>{children}</pre>,
+        code:       ({ children, className }) => {
+          if (!className) {
+            return <code className="font-mono text-[11.5px] px-1.5 py-0.5 rounded text-ruberra-text/90 align-baseline" style={{ background: "#ebe9e5", border: "1px solid #d6d4cf" }}>{children}</code>;
+          }
+          return <code className="font-mono text-[12px] text-ruberra-text/90 leading-relaxed">{children}</code>;
+        },
+      }}
+    >
       {text}
     </ReactMarkdown>
   );
