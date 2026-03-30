@@ -1,13 +1,21 @@
+// RUBERRA — canonical shell types
+// Single source of truth for all shell components.
+
 export type Tab = "lab" | "school" | "creation";
 
-export interface Message {
-  id:        string;
-  role:      "user" | "assistant";
-  content:   string;
-  tab:       Tab;
-  timestamp: number;
+export type SignalStatus = "idle" | "streaming" | "completed" | "error";
 
-export type BlockType = "verdict" | "execution" | "lesson" | "creation" | "report" | "signal";
+export type Theme = "dark" | "light";
+
+// ── Block system ──────────────────────────────────────────────────────────
+
+export type BlockType =
+  | "verdict"
+  | "execution"
+  | "lesson"
+  | "creation"
+  | "report"
+  | "signal";
 
 export type StatusFlag =
   | "pass"
@@ -33,21 +41,6 @@ export interface BlockSection {
   items:   BlockItem[];
 }
 
-/* Chamber-specific views wired in the left rail */
-export type LabView      = "chat" | "analysis" | "code" | "archive";
-export type SchoolView   = "chat" | "library"  | "archive";
-export type CreationView = "chat" | "terminal" | "archive";
-
-export type ChamberView = LabView | SchoolView | CreationView;
-
-/* Floating note pinned to screen */
-export interface FloatingNote {
-  id:        string;
-  content:   string;
-  tab:       Tab;
-  pinned:    boolean;
-  x:         number;
-  y:         number;
 export interface MessageBlock {
   type:     BlockType;
   title?:   string;
@@ -60,13 +53,32 @@ export interface MessageBlock {
   };
 }
 
+// ── Message ─────────────────────────────────────────────────────────────
+
 export interface Message {
   id:        string;
   role:      "user" | "assistant";
   content:   string;
+  tab:       Tab;
   timestamp: number;
   blocks?:   MessageBlock[];
 }
 
-/* App-wide theme */
-export type Theme = "dark" | "light";
+// ── Chamber views ────────────────────────────────────────────────────────
+
+export type LabView      = "chat" | "analysis" | "code" | "archive";
+export type SchoolView   = "chat" | "library"  | "archive";
+export type CreationView = "chat" | "terminal" | "archive";
+export type ChamberView  = LabView | SchoolView | CreationView;
+
+// ── Floating notes ───────────────────────────────────────────────────────
+
+export interface FloatingNote {
+  id:        string;
+  content:   string;
+  tab:       Tab;
+  pinned:    boolean;
+  x:         number;
+  y:         number;
+  timestamp: number;
+}
