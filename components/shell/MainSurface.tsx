@@ -1,8 +1,41 @@
 "use client";
 
 import { useEffect, useRef, type KeyboardEvent } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { type Tab, type Message } from "./types";
 import { BlockRenderer } from "./blocks";
+
+const MD_COMPONENTS = {
+  p:      ({ children }: { children?: React.ReactNode }) => (
+    <p className="mb-1.5 last:mb-0">{children}</p>
+  ),
+  strong: ({ children }: { children?: React.ReactNode }) => (
+    <strong className="font-semibold text-ruberra-text">{children}</strong>
+  ),
+  em:     ({ children }: { children?: React.ReactNode }) => (
+    <em className="italic">{children}</em>
+  ),
+  code:   ({ children }: { children?: React.ReactNode }) => (
+    <code className="font-mono text-xs bg-ruberra-stone px-1 py-0.5 rounded border border-ruberra-border align-baseline">
+      {children}
+    </code>
+  ),
+  pre:    ({ children }: { children?: React.ReactNode }) => (
+    <pre className="font-mono text-xs bg-ruberra-rail rounded-lg p-3 overflow-x-auto my-2 border border-ruberra-border">
+      {children}
+    </pre>
+  ),
+  ul:     ({ children }: { children?: React.ReactNode }) => (
+    <ul className="list-disc list-inside space-y-0.5 my-1">{children}</ul>
+  ),
+  ol:     ({ children }: { children?: React.ReactNode }) => (
+    <ol className="list-decimal list-inside space-y-0.5 my-1">{children}</ol>
+  ),
+  li:     ({ children }: { children?: React.ReactNode }) => (
+    <li>{children}</li>
+  ),
+};
 
 interface MainSurfaceProps {
   activeTab:     Tab;
@@ -215,7 +248,9 @@ function MessageBubble({ message }: { message: Message }) {
         {isStructuredPending ? (
           <span className="text-ruberra-muted italic">Composing response…</span>
         ) : message.content ? (
-          message.content
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={MD_COMPONENTS}>
+            {message.content}
+          </ReactMarkdown>
         ) : (
           <span className="inline-flex gap-0.5 items-center h-4">
             {[0, 1, 2].map((i) => (
