@@ -7,15 +7,11 @@ import {
   type LabView,
   type SchoolView,
   type CreationView,
-  type SessionStats,
 } from "./types";
-import LabAnalysisPane  from "../lab/LabAnalysisPane";
+import LabHome          from "../lab/LabHome";
 import LabCodeOrgan     from "../lab/LabCodeOrgan";
-import LabArchive       from "../lab/LabArchive";
-import SchoolLibrary    from "../school/SchoolLibrary";
-import SchoolArchive    from "../school/SchoolArchive";
+import SchoolSurface    from "../school/SchoolSurface";
 import CreationSurface  from "../creation/CreationSurface";
-import CreationArchive  from "../creation/CreationArchive";
 
 interface MainSurfaceProps {
   activeTab:    Tab;
@@ -25,30 +21,50 @@ interface MainSurfaceProps {
   labView:      LabView;
   schoolView:   SchoolView;
   creationView: CreationView;
-  stats:        SessionStats;
+  onLabView:    (v: LabView) => void;
 }
-
-/* ── View router ────────────────────────────────────────────── */
 
 export default function MainSurface({
   activeTab, messages, isLoading, onSend,
-  labView, schoolView, creationView, stats,
+  labView, schoolView, creationView, onLabView,
 }: MainSurfaceProps) {
 
+  /* ── Lab ── */
   if (activeTab === "lab") {
-    if (labView === "analysis") return <LabAnalysisPane messages={messages} />;
-    if (labView === "code")     return <LabCodeOrgan messages={messages} isLoading={isLoading} onSend={onSend} />;
-    if (labView === "archive")  return <LabArchive messages={messages} />;
-    /* research / summary / chat all use the editorial chat surface */
+    if (labView === "home" || labView === "research" || labView === "analysis" || labView === "general") {
+      const hasMessages = messages.length > 0;
+      if (!hasMessages || labView === "home") {
+        return (
+          <LabHome
+            onNavigate={v => onLabView(v)}
+            onSend={text => { onLabView("research"); onSend(text); }}
+          />
+        );
+      }
+      /* If messages exist, show chat thread */
+      return (
+        <ChatSurface
+          activeTab={activeTab}
+          messages={messages}
+          isLoading={isLoading}
+          onSend={onSend}
+          labView={labView}
+          onLabView={onLabView}
+        />
+      );
+    }
+    if (labView === "code") {
+      return <LabCodeOrgan messages={messages} isLoading={isLoading} onSend={onSend} />;
+    }
   }
 
+  /* ── School ── */
   if (activeTab === "school") {
-    if (schoolView === "library") return <SchoolLibrary />;
-    if (schoolView === "archive") return <SchoolArchive messages={messages} />;
+    return <SchoolSurface />;
   }
 
+  /* ── Creation ── */
   if (activeTab === "creation") {
-    if (creationView === "archive") return <CreationArchive messages={messages} />;
     return <CreationSurface messages={messages} isLoading={isLoading} onSend={onSend} />;
   }
 
@@ -58,41 +74,27 @@ export default function MainSurface({
       messages={messages}
       isLoading={isLoading}
       onSend={onSend}
-      stats={stats}
+      labView={labView}
+      onLabView={onLabView}
     />
   );
 }
 
-/* ── Chamber meta ───────────────────────────────────────────── */
-
-const PLACEHOLDER: Record<Tab, string> = {
-  lab:      "Ask anything…",
-  school:   "Ask anything…",
-  creation: "Describe what to build…",
-};
-
-const HINT: Record<Tab, string> = {
-  lab:      "Explore, experiment, and reason deeply.",
-  school:   "Learn, study, and build genuine mastery.",
-  creation: "Draft, build, and bring things into being.",
-};
-
-/* ── Editorial chat surface ──────────────────────────────────── */
+/* ── Chat / thread surface (Lab research/analysis threads) ─── */
 
 function ChatSurface({
-  activeTab, messages, isLoading, onSend, stats,
+  activeTab, messages, isLoading, onSend, labView, onLabView,
 }: {
   activeTab: Tab;
   messages:  Message[];
   isLoading: boolean;
   onSend:    (text: string) => void;
-  stats:     SessionStats;
+  labView:   LabView;
+  onLabView: (v: LabView) => void;
 }) {
-  const [draft, setDraft]      = useState("");
-  const threadRef              = useRef<HTMLDivElement>(null);
-  const textareaRef            = useRef<HTMLTextAreaElement>(null);
-  const placeholder            = PLACEHOLDER[activeTab];
-  const isEmpty                = messages.length === 0;
+  const [draft, setDraft]   = useState("");
+  const threadRef           = useRef<HTMLDivElement>(null);
+  const textareaRef         = useRef<HTMLTextAreaElement>(null);
 
   const isStreaming =
     isLoading &&
@@ -109,7 +111,7 @@ function ChatSurface({
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [draft]);
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -123,40 +125,108 @@ function ChatSurface({
     onSend(text);
   }
 
+  /* Context tabs for Lab thread view */
+  const LAB_CONTEXTS: { id: LabView; label: string }[] = [
+    { id: "research", label: "Research" },
+    { id: "analysis", label: "Analysis" },
+    { id: "code",     label: "Code" },
+    { id: "general",  label: "General" },
+  ];
+
   return (
-    <main
-      className="flex-1 flex flex-col min-h-0"
-      style={{ backgroundColor: "var(--r-bg)" }}
-    >
-      {/* ── Thread ──────────────────────────────────────────── */}
+    <div className="flex flex-col flex-1 min-h-0" style={{ backgroundColor: "var(--r-bg)" }}>
+
+      {/* Context tab bar — Lab only */}
+      {activeTab === "lab" && (
+        <div
+          className="flex items-center gap-1 shrink-0 border-b"
+          style={{
+            height:          "44px",
+            padding:         "0 20px",
+            borderColor:     "var(--r-border)",
+            backgroundColor: "var(--r-surface)",
+          }}
+        >
+          <span
+            className="font-mono select-none mr-3"
+            style={{ fontSize: "10px", letterSpacing: "0.1em", color: "var(--r-dim)", textTransform: "uppercase" }}
+          >
+            CONTEXT
+          </span>
+          {LAB_CONTEXTS.map(tab => {
+            const isActive = labView === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => onLabView(tab.id)}
+                className="transition-all duration-100 select-none"
+                style={{
+                  fontSize:        "13px",
+                  fontWeight:      isActive ? 500 : 400,
+                  padding:         "4px 12px",
+                  borderRadius:    "6px",
+                  backgroundColor: isActive ? "var(--r-pill-bg)" : "transparent",
+                  color:           isActive ? "var(--r-pill-text)" : "var(--r-subtext)",
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+          <div className="flex-1" />
+          <button
+            onClick={() => onLabView("home")}
+            className="flex items-center gap-1.5 transition-colors duration-100 select-none"
+            style={{ fontSize: "12px", color: "var(--r-subtext)", padding: "4px 8px" }}
+          >
+            <span className="w-3 h-3 rounded-full border" style={{ borderColor: "var(--r-dim)" }} />
+            New session
+          </button>
+        </div>
+      )}
+
+      {/* Thread */}
       <div
         ref={threadRef}
         className="flex-1 overflow-y-auto scroll-smooth"
         style={{ padding: "32px 40px 16px" }}
       >
-        {isEmpty ? (
-          <EmptyState tab={activeTab} />
-        ) : (
-          <div style={{ maxWidth: "640px" }}>
-            {messages.map((msg, i) => (
-              <EditorialMessage
-                key={msg.id}
-                msg={msg}
-                isLast={i === messages.length - 1}
-                isStreaming={isLoading && i === messages.length - 1 && msg.role === "assistant"}
-              />
-            ))}
-          </div>
-        )}
+        <div style={{ maxWidth: "640px" }}>
+          {messages.map((msg, i) => (
+            <ThreadMessage
+              key={msg.id}
+              msg={msg}
+              isStreaming={isLoading && i === messages.length - 1 && msg.role === "assistant"}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* ── Input area ──────────────────────────────────────── */}
-      <div style={{ padding: "0 40px", flexShrink: 0 }}>
-        {/* Bottom-border only — no surface box */}
+      {/* Status */}
+      {isLoading && (
         <div
-          className="flex items-end gap-4 transition-colors duration-150"
+          className="shrink-0 flex items-center gap-2"
+          style={{ padding: "0 40px", height: "24px" }}
+        >
+          <span
+            className="w-1.5 h-1.5 rounded-full animate-pulse"
+            style={{ backgroundColor: "var(--r-accent)" }}
+          />
+          <span
+            className="font-mono"
+            style={{ fontSize: "10px", color: "var(--r-dim)" }}
+          >
+            {isStreaming ? "streaming" : "thinking"}
+          </span>
+        </div>
+      )}
+
+      {/* Input bar — bottom border only */}
+      <div className="shrink-0" style={{ padding: "0 40px 16px" }}>
+        <div
+          className="flex items-end gap-3"
           style={{
-            borderBottom: `1px solid ${isLoading ? "var(--r-border-soft)" : "var(--r-border)"}`,
+            borderBottom: "1px solid var(--r-border)",
             paddingBottom: "12px",
           }}
         >
@@ -167,19 +237,14 @@ function ChatSurface({
             onChange={e => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isLoading}
-            placeholder={placeholder}
+            placeholder="Ask anything…"
             className="flex-1 bg-transparent outline-none resize-none leading-relaxed disabled:opacity-40"
-            style={{
-              color:     "var(--r-text)",
-              fontSize:  "14px",
-              minHeight: "24px",
-              maxHeight: "200px",
-            }}
+            style={{ color: "var(--r-text)", fontSize: "14px", minHeight: "24px", maxHeight: "160px" }}
           />
           <button
             onClick={submit}
             disabled={!draft.trim() || isLoading}
-            className="shrink-0 transition-colors duration-150 disabled:opacity-20 disabled:cursor-not-allowed"
+            className="shrink-0 transition-colors duration-150 disabled:opacity-25 disabled:cursor-not-allowed"
             style={{ color: "var(--r-subtext)", marginBottom: "2px" }}
             aria-label="Send"
           >
@@ -189,286 +254,60 @@ function ChatSurface({
             </svg>
           </button>
         </div>
-
-        {/* Hint + disclaimer row */}
-        <div
-          className="flex items-center justify-between select-none"
-          style={{ paddingTop: "8px", paddingBottom: "10px" }}
-        >
-          <span
-            className="font-mono"
-            style={{ fontSize: "10px", color: "var(--r-dim)" }}
-          >
-            SHIFT+ENTER for newline
-          </span>
-          <span
-            style={{ fontSize: "10px", color: "var(--r-dim)" }}
-          >
-            Responses may be incomplete. Always verify critical information.
-          </span>
-        </div>
+        <p className="select-none font-mono" style={{ fontSize: "10px", color: "var(--r-dim)", marginTop: "6px" }}>
+          SHIFT+ENTER for newline
+        </p>
       </div>
-
-      {/* ── Status bar ──────────────────────────────────────── */}
-      <StatusBar stats={stats} isStreaming={isStreaming} isLoading={isLoading} />
-    </main>
+    </div>
   );
 }
 
-/* ── Editorial message layout ───────────────────────────────── */
+/* ── Thread message ─────────────────────────────────────────── */
 
-function EditorialMessage({
-  msg,
-  isLast,
-  isStreaming,
-}: {
-  msg:         Message;
-  isLast:      boolean;
-  isStreaming:  boolean;
-}) {
+function ThreadMessage({ msg, isStreaming }: { msg: Message; isStreaming: boolean }) {
   const isUser = msg.role === "user";
-
-  /* Format: HH:MM */
-  const time = new Date(msg.timestamp).toLocaleTimeString([], {
-    hour:   "2-digit",
-    minute: "2-digit",
-  });
+  const time   = new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   if (isUser) {
     return (
-      <div style={{ marginBottom: "28px" }}>
-        <p
-          style={{
-            fontSize:   "14px",
-            lineHeight: "1.65",
-            color:      "var(--r-text)",
-          }}
-        >
-          {msg.content}
-        </p>
-      </div>
+      <p
+        style={{
+          fontSize:     "14px",
+          lineHeight:   "1.65",
+          color:        "var(--r-text)",
+          marginBottom: "24px",
+        }}
+      >
+        {msg.content}
+      </p>
     );
   }
 
-  /* Assistant — sender label above, full-width prose */
   return (
-    <div style={{ marginBottom: "32px" }}>
-      {/* Sender label */}
-      <div
-        className="flex items-center gap-2 select-none"
-        style={{ marginBottom: "10px" }}
-      >
-        <span
-          className="font-semibold"
-          style={{
-            fontSize:      "11px",
-            color:         "var(--r-text)",
-            letterSpacing: "-0.01em",
-          }}
-        >
+    <div style={{ marginBottom: "28px" }}>
+      <div className="flex items-center gap-2" style={{ marginBottom: "8px" }}>
+        <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--r-text)", letterSpacing: "-0.01em" }}>
           RUBERRA
         </span>
-        <span
-          className="font-mono"
-          style={{ fontSize: "10px", color: "var(--r-dim)" }}
-        >
-          {time}
-        </span>
+        <span className="font-mono" style={{ fontSize: "10px", color: "var(--r-dim)" }}>{time}</span>
       </div>
-
-      {/* Response body */}
-      <div
-        style={{
-          fontSize:   "14px",
-          lineHeight: "1.75",
-          color:      "var(--r-text)",
-        }}
-      >
+      <div>
         {msg.content ? (
-          /* Render paragraphs separated by double newline */
           msg.content.split(/\n\n+/).map((para, i) => (
-            <p key={i} style={{ marginBottom: "12px" }}>{para.trim()}</p>
+            <p key={i} style={{ fontSize: "14px", lineHeight: "1.75", color: "var(--r-text)", marginBottom: "14px" }}>
+              {para.trim()}
+            </p>
           ))
-        ) : (
-          isStreaming ? <ThinkingIndicator /> : null
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ThinkingIndicator() {
-  return (
-    <span
-      className="inline-block w-2 h-4 animate-pulse"
-      style={{
-        backgroundColor: "var(--r-subtext)",
-        opacity:         0.5,
-      }}
-    />
-  );
-}
-
-/* ── Status bar ─────────────────────────────────────────────── */
-
-function StatusBar({
-  stats,
-  isStreaming,
-  isLoading,
-}: {
-  stats:       SessionStats;
-  isStreaming:  boolean;
-  isLoading:    boolean;
-}) {
-  const latency = stats.latencyMs > 0
-    ? `${stats.latencyMs}ms`
-    : "—";
-
-  return (
-    <div
-      className="shrink-0 border-t flex items-center justify-between select-none font-mono"
-      style={{
-        height:          "28px",
-        borderColor:     "var(--r-border)",
-        backgroundColor: "var(--r-surface)",
-        paddingLeft:     "40px",
-        paddingRight:    "40px",
-        fontSize:        "9px",
-        color:           "var(--r-dim)",
-        letterSpacing:   "0.05em",
-      }}
-    >
-      {/* Left — brand + status */}
-      <div className="flex items-center gap-3">
-        <span style={{ color: "var(--r-subtext)" }}>RUBERRA CORE</span>
-        <span style={{ color: "var(--r-border)" }}>·</span>
-        <span
-          className="flex items-center gap-1.5"
-          style={{ color: isLoading ? "var(--r-accent)" : "var(--r-ok)" }}
-        >
+        ) : isStreaming ? (
           <span
-            className={["w-1 h-1 rounded-full", isLoading ? "animate-pulse" : ""].join(" ")}
-            style={{ backgroundColor: "currentColor" }}
+            className="inline-block animate-pulse"
+            style={{ width: "2px", height: "16px", backgroundColor: "var(--r-subtext)", opacity: 0.5 }}
           />
-          {isLoading ? (isStreaming ? "STREAMING" : "THINKING") : "CONNECTED"}
-        </span>
-      </div>
-
-      {/* Right — model / context / latency / date */}
-      <div className="flex items-center gap-3">
-        <span>Model: {stats.model}</span>
-        <span style={{ color: "var(--r-border)" }}>·</span>
-        <span>Context: {stats.context}</span>
-        <span style={{ color: "var(--r-border)" }}>·</span>
-        <span>Latency: {latency}</span>
-        <span style={{ color: "var(--r-border)" }}>·</span>
-        <span>Session · {stats.date}</span>
+        ) : null}
       </div>
     </div>
   );
 }
 
-/* ── Empty state ────────────────────────────────────────────── */
-
-const BOOT_LINES: Record<Tab, string[]> = {
-  lab:      ["kernel ready", "context loaded", "reasoning warm"],
-  school:   ["knowledge index ready", "curriculum loaded", "guide warm"],
-  creation: ["forge kernel ready", "output encoder loaded", "builder warm"],
-};
-
-function EmptyState({ tab }: { tab: Tab }) {
-  return (
-    <div
-      className="h-full flex flex-col justify-end select-none"
-      style={{ paddingBottom: "16px", minHeight: "120px" }}
-    >
-      <div
-        className="font-mono flex flex-col"
-        style={{ gap: "3px" }}
-      >
-        {BOOT_LINES[tab].map(l => (
-          <span
-            key={l}
-            className="flex items-center gap-2"
-            style={{ fontSize: "10px", color: "var(--r-dim)" }}
-          >
-            <span style={{ color: "var(--r-ok)", opacity: 0.5 }}>›</span>
-            {l}
-          </span>
-        ))}
-      </div>
-      <p
-        style={{
-          fontSize:   "13px",
-          color:      "var(--r-subtext)",
-          marginTop:  "12px",
-          lineHeight: "1.5",
-        }}
-      >
-        {HINT[tab]}
-      </p>
-    </div>
-  );
-}
-
-/* ── Shared InputBar export (used by other surfaces) ─────────── */
-
-export function InputBar({
-  value,
-  onChange,
-  onKeyDown,
-  onSubmit,
-  disabled,
-  placeholder,
-  submitLabel,
-  textareaRef,
-}: {
-  value:        string;
-  onChange:     (v: string) => void;
-  onKeyDown:    (e: KeyboardEvent<HTMLTextAreaElement>) => void;
-  onSubmit:     () => void;
-  disabled:     boolean;
-  placeholder:  string;
-  submitLabel:  string;
-  textareaRef?: React.RefObject<HTMLTextAreaElement>;
-}) {
-  return (
-    <div
-      className="flex items-end gap-3 border transition-colors duration-150"
-      style={{
-        backgroundColor: "var(--r-surface)",
-        borderColor:     disabled ? "var(--r-border-soft)" : "var(--r-border)",
-        padding:         "10px 14px",
-      }}
-    >
-      <textarea
-        ref={textareaRef}
-        rows={1}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={onKeyDown}
-        disabled={disabled}
-        placeholder={placeholder}
-        className="flex-1 bg-transparent outline-none resize-none leading-relaxed disabled:opacity-40"
-        style={{
-          color:     "var(--r-text)",
-          fontSize:  "13px",
-          minHeight: "22px",
-          maxHeight: "160px",
-        }}
-      />
-      <button
-        onClick={onSubmit}
-        disabled={!value.trim() || disabled}
-        className="shrink-0 transition-colors duration-150 disabled:opacity-25 disabled:cursor-not-allowed"
-        style={{ color: "var(--r-subtext)" }}
-        aria-label={submitLabel}
-      >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-          <path d="M13.5 8L2.5 2.5l2.5 5.5-2.5 5.5L13.5 8z"
-            stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-        </svg>
-      </button>
-    </div>
-  );
-}
+/* Exported for use by other surfaces */
+export { ChatSurface };

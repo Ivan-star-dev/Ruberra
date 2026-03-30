@@ -2,43 +2,13 @@
 
 /**
  * CREATION CANON — LOCKED STANDARD
- * ─────────────────────────────────────────────────────────────────────────────
- * This component defines the canonical Creation chamber surface for Ruberra.
- * It is the approved, permanent output grammar for the Creation tab.
- *
- * VISUAL LAW (do not override):
- *   - mineral-white shell background (r-* tokens only)
- *   - Creation does NOT use terminal-dark regime by default
- *   - clean sans-serif for all body content
- *   - mono ONLY for: labels, chips, metadata strips, counters, technical tags
- *   - hairline borders only — no thick strokes, no dashed in mineral context
- *   - semantic green = var(--r-ok), restrained moss — never neon
- *   - no amber/copper — those belong to Lab code organ and terminal insets
- *   - no decorative gradients, no visual noise
- *   - no rounded-xl — rounded-sm or square edges only
- *
- * CANONICAL BLOCKS (do not remove or replace):
- *   - compact CREATION chamber label top-left
- *   - dominant central output card
- *   - progress bar with restrained semantic fill
- *   - deliverables checklist with clearly readable checked/pending states
- *   - build phases sequence strip
- *   - phase / blocking issues / steps remaining meta strip
- *   - active/running chip
- *   - integrated input bar directly below the output card
- *   - operational footer meta strip
- *
- * WHAT MUST NEVER HAPPEN:
- *   - do not replace this with rt-* terminal-dark regime
- *   - do not turn this into a generic chat surface
- *   - do not inject neon greens, electric accents, or copper
- *   - do not remove the progress bar or checklist grammar
- *   - do not flatten the card hierarchy
- * ─────────────────────────────────────────────────────────────────────────────
+ * Visual law: mineral/light shell, r-* tokens, clean sans body, mono labels.
+ * Left panel: OUTPUT TYPE + PARAMETERS. Right: prompt bar + chips + prose output.
+ * Dark Generate button. No terminal-dark regime. No neon.
  */
 
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
-import { type Message } from "../shell/types";
+import { type Message, type OutputType, type CreationParams } from "../shell/types";
 
 interface CreationSurfaceProps {
   messages:  Message[];
@@ -46,142 +16,35 @@ interface CreationSurfaceProps {
   onSend:    (text: string) => void;
 }
 
-/* ── Types ──────────────────────────────────────────────────── */
+const OUTPUT_TYPES: { id: OutputType; label: string; caption: string; icon: React.ReactNode }[] = [
+  { id: "prose",    label: "Prose",    caption: "Narrative, essays, long-form",      icon: <IcT /> },
+  { id: "visual",   label: "Visual",   caption: "Concept imagery, diagrams",         icon: <IcVisual /> },
+  { id: "code",     label: "Code",     caption: "Scripts, functions, modules",       icon: <IcCode /> },
+  { id: "document", label: "Document", caption: "Reports, briefs, specs",            icon: <IcDoc /> },
+  { id: "voice",    label: "Voice",    caption: "Scripts, transcripts, spoken",      icon: <IcMic /> },
+];
 
-type BuildPhase = "ready" | "briefing" | "building" | "reviewing" | "done";
-
-interface DeliverableItem {
-  text:    string;
-  checked: boolean;
-}
-
-interface OutputCard {
-  buildNum:     number;
-  directive:    string;
-  body:         string;
-  deliverables: DeliverableItem[];
-  progressPct:  number;
-  phase:        BuildPhase;
-  isStreaming:  boolean;
-}
-
-/* ── Parsing ────────────────────────────────────────────────── */
-
-const LIST_RE = /^[\-\*\•]\s+(.+)$/;
-const ORDERED_RE = /^\d+\.\s+(.+)$/;
-const CHECKED_RE = /^\[x\]\s+(.+)$/i;
-const UNCHECKED_RE = /^\[\s\]\s+(.+)$/i;
-
-function parseDeliverables(content: string): DeliverableItem[] {
-  const lines = content.split("\n").map(l => l.trim()).filter(Boolean);
-  const items: DeliverableItem[] = [];
-
-  for (const line of lines) {
-    if (CHECKED_RE.test(line)) {
-      items.push({ text: line.replace(CHECKED_RE, "$1"), checked: true });
-    } else if (UNCHECKED_RE.test(line)) {
-      items.push({ text: line.replace(UNCHECKED_RE, "$1"), checked: false });
-    } else if (LIST_RE.test(line)) {
-      items.push({ text: line.replace(LIST_RE, "$1"), checked: false });
-    } else if (ORDERED_RE.test(line)) {
-      items.push({ text: line.replace(ORDERED_RE, "$1"), checked: false });
-    }
-    if (items.length >= 7) break;
-  }
-
-  return items;
-}
-
-function extractBody(content: string): string {
-  const lines = content.split("\n").map(l => l.trim());
-  const prose = lines.filter(l =>
-    l.length > 0 &&
-    !LIST_RE.test(l) &&
-    !ORDERED_RE.test(l) &&
-    !CHECKED_RE.test(l) &&
-    !UNCHECKED_RE.test(l)
-  );
-  return prose.slice(0, 3).join(" ").slice(0, 320);
-}
-
-function buildOutputCard(
-  messages: Message[],
-  isLoading: boolean,
-  streamingProgress: number,
-): OutputCard | null {
-  const userMsgs      = messages.filter(m => m.role === "user");
-  const assistantMsgs = messages.filter(m => m.role === "assistant");
-  const buildNum      = userMsgs.length;
-
-  if (buildNum === 0) return null;
-
-  const lastUser      = userMsgs[userMsgs.length - 1];
-  const lastAssistant = assistantMsgs[assistantMsgs.length - 1];
-
-  const content     = lastAssistant?.content ?? "";
-  const deliverables = parseDeliverables(content);
-  const body        = extractBody(content);
-
-  const checkedCount = deliverables.filter(d => d.checked).length;
-  const progressPct  = isLoading
-    ? streamingProgress
-    : deliverables.length > 0
-      ? Math.round((checkedCount / deliverables.length) * 100)
-      : content.length > 0 ? 100 : 0;
-
-  const phase: BuildPhase =
-    isLoading && content.length === 0 ? "briefing"
-    : isLoading                        ? "building"
-    : content.length > 0 && buildNum > 1 ? "done"
-    : content.length > 0               ? "reviewing"
-    : "ready";
-
-  return {
-    buildNum,
-    directive:    lastUser.content,
-    body,
-    deliverables,
-    progressPct,
-    phase,
-    isStreaming:  isLoading,
-  };
-}
-
-/* ── Main component ─────────────────────────────────────────── */
+const DEFAULT_PARAMS: CreationParams = {
+  outputType: "prose",
+  tone:       "precise",
+  length:     "standard",
+  audience:   "expert",
+};
 
 export default function CreationSurface({ messages, isLoading, onSend }: CreationSurfaceProps) {
-  const [draft, setDraft]           = useState("");
-  const [streamPct, setStreamPct]   = useState(0);
-  const textRef                     = useRef<HTMLTextAreaElement>(null);
-  const threadRef                   = useRef<HTMLDivElement>(null);
+  const [params, setParams]   = useState<CreationParams>(DEFAULT_PARAMS);
+  const [draft, setDraft]     = useState("");
+  const textRef               = useRef<HTMLTextAreaElement>(null);
+  const lastAssistant         = messages.filter(m => m.role === "assistant" && m.content.length > 0).at(-1);
 
-  /* Animate progress bar during streaming */
-  useEffect(() => {
-    if (!isLoading) { setStreamPct(0); return; }
-    setStreamPct(12);
-    const ticks = [800, 1800, 3200, 5000, 7500];
-    const targets = [28, 44, 61, 74, 82];
-    const timers = ticks.map((ms, i) =>
-      setTimeout(() => setStreamPct(targets[i]), ms)
-    );
-    return () => timers.forEach(clearTimeout);
-  }, [isLoading]);
-
-  /* Auto-scroll on new messages */
-  useEffect(() => {
-    const el = threadRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [messages]);
-
-  /* Auto-resize textarea */
   useEffect(() => {
     const el = textRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 80)}px`;
   }, [draft]);
 
-  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+  function handleKey(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
   }
 
@@ -192,473 +55,315 @@ export default function CreationSurface({ messages, isLoading, onSend }: Creatio
     onSend(text);
   }
 
-  const card   = buildOutputCard(messages, isLoading, streamPct);
-  const builds = messages.filter(m => m.role === "user").length;
-
   return (
-    <div className="flex-1 flex flex-col min-h-0" style={{ backgroundColor: "var(--r-bg)" }}>
+    <div className="flex flex-1 min-h-0" style={{ backgroundColor: "var(--r-bg)" }}>
 
-      {/* ── Scrollable area ────────────────────────────────── */}
-      <div ref={threadRef} className="flex-1 overflow-y-auto px-6 py-5">
+      {/* ── Left: Output type + Parameters ── */}
+      <div
+        className="shrink-0 flex flex-col border-r overflow-y-auto"
+        style={{
+          width:           "220px",
+          borderColor:     "var(--r-border)",
+          backgroundColor: "var(--r-surface)",
+        }}
+      >
+        {/* OUTPUT TYPE */}
+        <div style={{ padding: "18px 0 12px" }}>
+          <p
+            className="font-mono uppercase"
+            style={{ fontSize: "9px", letterSpacing: "0.12em", color: "var(--r-dim)", padding: "0 16px", marginBottom: "8px" }}
+          >
+            Output Type
+          </p>
+          {OUTPUT_TYPES.map(ot => {
+            const isActive = params.outputType === ot.id;
+            return (
+              <button
+                key={ot.id}
+                onClick={() => setParams(p => ({ ...p, outputType: ot.id }))}
+                className="w-full text-left flex items-start gap-3 transition-colors duration-100"
+                style={{
+                  padding:         "9px 16px",
+                  backgroundColor: isActive ? "var(--r-border-soft)" : "transparent",
+                }}
+              >
+                <span style={{ color: "var(--r-subtext)", flexShrink: 0, marginTop: "1px" }}>{ot.icon}</span>
+                <div>
+                  <p style={{ fontSize: "12px", fontWeight: isActive ? 500 : 400, color: "var(--r-text)" }}>{ot.label}</p>
+                  <p style={{ fontSize: "10px", color: "var(--r-dim)", lineHeight: "1.4" }}>{ot.caption}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
 
-        {/* Empty state — canonical template */}
-        {!card && (
-          <EmptyOutputCard />
-        )}
+        <div style={{ height: "1px", backgroundColor: "var(--r-border)" }} />
 
-        {/* Active / populated output card */}
-        {card && (
-          <OutputCardBlock card={card} />
-        )}
+        {/* PARAMETERS */}
+        <div style={{ padding: "14px 16px" }}>
+          <p
+            className="font-mono uppercase"
+            style={{ fontSize: "9px", letterSpacing: "0.12em", color: "var(--r-dim)", marginBottom: "12px" }}
+          >
+            Parameters
+          </p>
 
-        {/* Previous builds — compact history */}
-        {builds > 1 && (
-          <PreviousBuilds messages={messages} currentBuildNum={builds} />
-        )}
-
+          <ParamGroup
+            label="Tone"
+            options={["Precise", "Neutral", "Expressive", "Formal"]}
+            active={capitalize(params.tone)}
+            onSelect={v => setParams(p => ({ ...p, tone: v.toLowerCase() as CreationParams["tone"] }))}
+          />
+          <ParamGroup
+            label="Length"
+            options={["Brief", "Standard", "Extended"]}
+            active={capitalize(params.length)}
+            onSelect={v => setParams(p => ({ ...p, length: v.toLowerCase() as CreationParams["length"] }))}
+          />
+          <ParamGroup
+            label="Audience"
+            options={["Expert", "General", "Executive"]}
+            active={capitalize(params.audience)}
+            onSelect={v => setParams(p => ({ ...p, audience: v.toLowerCase() as CreationParams["audience"] }))}
+          />
+        </div>
       </div>
 
-      {/* ── Input bar ──────────────────────────────────────── */}
-      <div
-        className="shrink-0 border-t"
-        style={{ borderColor: "var(--r-border)", padding: "0 24px 20px" }}
-      >
-        {/* Input surface */}
+      {/* ── Right: Prompt + output ── */}
+      <div className="flex-1 flex flex-col min-h-0">
+
+        {/* Prompt bar */}
         <div
-          className="flex items-end gap-3 border transition-colors duration-150"
+          className="shrink-0 flex items-center gap-3 border-b"
           style={{
+            padding:         "10px 16px",
+            borderColor:     "var(--r-border)",
             backgroundColor: "var(--r-surface)",
-            borderColor:     isLoading ? "var(--r-border-soft)" : "var(--r-border)",
-            padding:         "10px 14px",
           }}
         >
+          {/* Sparkle icon */}
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style={{ color: "var(--r-subtext)", flexShrink: 0 }}>
+            <path d="M8 1l1.5 4 4 1.5-4 1.5L8 12l-1.5-4L2.5 6.5l4-1.5L8 1z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+          </svg>
+
+          {/* Prompt textarea */}
           <textarea
             ref={textRef}
             rows={1}
             value={draft}
             onChange={e => setDraft(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onKeyDown={handleKey}
             disabled={isLoading}
-            placeholder="Describe what to build…"
+            placeholder="Write a strategic analysis of…"
             className="flex-1 bg-transparent outline-none resize-none leading-relaxed disabled:opacity-40"
-            style={{
-              color:     "var(--r-text)",
-              fontSize:  "13px",
-              minHeight: "22px",
-              maxHeight: "160px",
-            }}
+            style={{ fontSize: "13px", color: "var(--r-text)", minHeight: "22px", maxHeight: "80px" }}
           />
+
+          {/* Model selector */}
+          <div
+            className="flex items-center gap-1.5 shrink-0"
+            style={{
+              padding:         "4px 10px",
+              borderRadius:    "6px",
+              border:          "1px solid var(--r-border)",
+              backgroundColor: "var(--r-surface)",
+              fontSize:        "11px",
+              color:           "var(--r-subtext)",
+            }}
+          >
+            RUBERRA-7B
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+
+          {/* Generate button */}
           <button
             onClick={submit}
             disabled={!draft.trim() || isLoading}
-            className="font-mono border transition-colors duration-150 disabled:opacity-25 disabled:cursor-not-allowed shrink-0"
+            className="flex items-center gap-2 transition-colors duration-150 disabled:opacity-40"
             style={{
-              fontSize:        "10px",
-              borderColor:     "var(--r-border)",
-              color:           "var(--r-subtext)",
-              backgroundColor: "var(--r-elevated)",
-              padding:         "3px 10px",
+              padding:         "6px 14px",
+              borderRadius:    "8px",
+              backgroundColor: "var(--r-cta-bg)",
+              color:           "var(--r-cta-text)",
+              fontSize:        "13px",
+              fontWeight:      500,
+              flexShrink:      0,
             }}
           >
-            build
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1l1.5 4 4 1.5-4 1.5L7 11l-1.5-4L1.5 5.5l4-1.5L7 1z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+            </svg>
+            Generate
           </button>
         </div>
 
-        {/* Footer meta */}
-        <div className="flex items-center justify-between mt-1.5" style={{ paddingLeft: "1px" }}>
-          <span className="font-mono" style={{ fontSize: "10px", color: "var(--r-dim)" }}>
-            Enter to build · Shift+Enter for newline
-          </span>
-          <div className="flex items-center gap-3">
-            <MetaAction label="export" icon="↓" />
-            <MetaAction label="version" icon="⊕" />
-            <MetaAction label="attach" icon="⊞" />
-          </div>
+        {/* Output area */}
+        <div className="flex-1 overflow-y-auto" style={{ padding: "20px 24px" }}>
+          {lastAssistant ? (
+            <>
+              {/* Chip row */}
+              <div className="flex items-center gap-2 flex-wrap mb-5">
+                <Chip label={capitalize(params.outputType)} active />
+                <Chip label={capitalize(params.tone)} />
+                <Chip label={capitalize(params.audience)} />
+                <Chip label={capitalize(params.length)} />
+
+                {/* Right: action icons */}
+                <div className="flex-1" />
+                <button style={{ color: "var(--r-dim)" }} title="Download">
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 3v8M5 8l3 3 3-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M3 14h10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                  </svg>
+                </button>
+                <button style={{ color: "var(--r-dim)" }} title="Share">
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                    <circle cx="12" cy="3" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+                    <circle cx="12" cy="13" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+                    <circle cx="4" cy="8" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+                    <path d="M5.5 7.2l5-3.2M5.5 8.8l5 3.2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                  </svg>
+                </button>
+                <button style={{ color: "var(--r-dim)" }} title="Regenerate">
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                    <path d="M2 8a6 6 0 1110.4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                    <path d="M12 3.5V7h-3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Prose output */}
+              <div style={{ maxWidth: "680px" }}>
+                {lastAssistant.content.split(/\n\n+/).map((para, i) => (
+                  <p
+                    key={i}
+                    style={{
+                      fontSize:     "14px",
+                      lineHeight:   "1.75",
+                      color:        "var(--r-text)",
+                      marginBottom: "16px",
+                    }}
+                  >
+                    {para.trim()}
+                  </p>
+                ))}
+              </div>
+            </>
+          ) : (
+            /* Empty state */
+            <div
+              className="h-full flex flex-col items-center justify-center select-none"
+              style={{ paddingBottom: "40px" }}
+            >
+              <p style={{ fontSize: "13px", color: "var(--r-dim)" }}>
+                Enter a directive above and press Generate.
+              </p>
+            </div>
+          )}
         </div>
       </div>
-
     </div>
   );
 }
 
-/* ── Empty output card — canonical grammar template ─────────── */
+/* ── Shared primitives ─────────────────────────────────────── */
 
-function EmptyOutputCard() {
+function ParamGroup({
+  label, options, active, onSelect,
+}: {
+  label:    string;
+  options:  string[];
+  active:   string;
+  onSelect: (v: string) => void;
+}) {
   return (
-    <div
-      className="mb-4 border animate-panel-in"
-      style={{ borderColor: "var(--r-border)", backgroundColor: "var(--r-surface)" }}
-    >
-      {/* Card header */}
-      <div
-        className="flex items-center justify-between px-5 py-3 border-b"
-        style={{ borderColor: "var(--r-border-soft)" }}
-      >
-        <div className="flex items-center gap-2.5">
-          <BuildGlyph />
-          <span
-            className="font-mono text-[10px] uppercase tracking-widest"
-            style={{ color: "var(--r-subtext)", letterSpacing: "0.08em" }}
+    <div style={{ marginBottom: "14px" }}>
+      <p style={{ fontSize: "11px", color: "var(--r-subtext)", marginBottom: "6px" }}>{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map(o => (
+          <button
+            key={o}
+            onClick={() => onSelect(o)}
+            className="transition-colors duration-100"
+            style={{
+              fontSize:        "11px",
+              padding:         "3px 9px",
+              borderRadius:    "999px",
+              border:          "1px solid var(--r-border)",
+              backgroundColor: active === o ? "var(--r-chip-active)" : "var(--r-chip-bg)",
+              color:           active === o ? "var(--r-cta-text)" : "var(--r-subtext)",
+              fontWeight:      active === o ? 500 : 400,
+            }}
           >
-            Awaiting directive
-          </span>
-        </div>
-        <span className="font-mono text-[9px]" style={{ color: "var(--r-dim)" }}>
-          ready
-        </span>
-      </div>
-
-      {/* Progress track — uninitiated, no percentage label */}
-      <div className="px-5 pt-4 pb-2">
-        <div className="flex items-center justify-between mb-2">
-          <span
-            className="font-mono text-[9px] uppercase tracking-widest"
-            style={{ color: "var(--r-dim)", letterSpacing: "0.08em" }}
-          >
-            Deliverables
-          </span>
-        </div>
-        {/* Track only, no fill — uninitiated state */}
-        <div
-          className="h-px w-full"
-          style={{ backgroundColor: "var(--r-border)" }}
-        />
-      </div>
-
-      {/* Skeleton checklist rows — visual grammar without fake text */}
-      <div className="px-5 pb-4 pt-3 space-y-3">
-        {[0.7, 0.5, 0.4].map((opacity, i) => (
-          <div key={i} className="flex items-center gap-2.5">
-            <span
-              className="w-3 h-3 shrink-0 border"
-              style={{ borderColor: "var(--r-border)", opacity }}
-            />
-            <span
-              className="h-2.5 rounded-sm"
-              style={{
-                width:           `${[52, 38, 44][i]}%`,
-                backgroundColor: "var(--r-border)",
-                opacity,
-              }}
-            />
-          </div>
+            {o}
+          </button>
         ))}
       </div>
-
-      {/* Phase strip — show sequence only, no meta noise */}
-      <PhaseStrip phase="ready" stepsRemaining={0} blocking={null} />
     </div>
   );
 }
 
-/* ── Active / populated output card ─────────────────────────── */
-
-function OutputCardBlock({ card }: { card: OutputCard }) {
-  return (
-    <div className="mt-2 mb-4 border animate-panel-in"
-      style={{ borderColor: "var(--r-border)", backgroundColor: "var(--r-surface)" }}>
-
-      {/* Card header */}
-      <div
-        className="flex items-center justify-between px-5 border-b"
-        style={{ borderColor: "var(--r-border-soft)", minHeight: "44px" }}
-      >
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <BuildGlyph active={card.isStreaming} />
-          <span
-            className="font-mono shrink-0"
-            style={{ fontSize: "9px", color: "var(--r-dim)", letterSpacing: "0.05em" }}
-          >
-            #{card.buildNum}
-          </span>
-          <span
-            className="truncate"
-            style={{ fontSize: "12px", color: "var(--r-text)", fontWeight: 500 }}
-          >
-            {card.directive.slice(0, 72)}{card.directive.length > 72 ? "…" : ""}
-          </span>
-        </div>
-        {card.isStreaming && <ActiveChip />}
-      </div>
-
-      {/* Body prose — if any, above deliverables */}
-      {card.body && !card.isStreaming && (
-        <div className="px-5 pt-3 pb-1">
-          <p className="text-sm leading-relaxed" style={{ color: "var(--r-text)" }}>
-            {card.body}
-          </p>
-        </div>
-      )}
-
-      {/* Streaming skeleton */}
-      {card.isStreaming && card.body.length === 0 && (
-        <div className="px-5 pt-3 pb-1 flex items-center gap-2">
-          {[0, 1, 2].map(i => (
-            <span key={i} className="w-1 h-1 rounded-full animate-bounce"
-              style={{ backgroundColor: "var(--r-ok)", animationDelay: `${i * 120}ms` }} />
-          ))}
-          <span className="text-xs" style={{ color: "var(--r-subtext)" }}>
-            {card.phase === "briefing" ? "Briefing…" : "Building…"}
-          </span>
-        </div>
-      )}
-
-      {/* Progress bar */}
-      <div className="px-5 pt-3 pb-2">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="font-mono text-[10px] uppercase tracking-widest"
-            style={{ color: "var(--r-subtext)" }}>
-            Deliverables
-          </span>
-          <span className="font-mono text-[10px]" style={{ color: "var(--r-dim)" }}>
-            {card.progressPct}%
-          </span>
-        </div>
-        <ProgressBar pct={card.progressPct} streaming={card.isStreaming} />
-      </div>
-
-      {/* Checklist */}
-      <div className="px-5 pb-3 pt-1 space-y-2">
-        {card.deliverables.length === 0 ? (
-          <p className="text-xs" style={{ color: "var(--r-subtext)" }}>
-            {card.isStreaming ? "Deriving deliverables…" : "Output ready below ↑"}
-          </p>
-        ) : (
-          card.deliverables.map((item, i) => (
-            <ChecklistItem key={i} text={item.text} checked={item.checked} />
-          ))
-        )}
-      </div>
-
-      {/* Phase strip */}
-      <PhaseStrip
-        phase={card.phase}
-        stepsRemaining={card.deliverables.filter(d => !d.checked).length}
-        blocking={null}
-      />
-    </div>
-  );
-}
-
-/* ── Previous builds — compact history ──────────────────────── */
-
-function PreviousBuilds({ messages, currentBuildNum }: { messages: Message[]; currentBuildNum: number }) {
-  const [open, setOpen] = useState(false);
-  const pairs: { user: Message; assistant: Message | null }[] = [];
-  for (let i = 0; i < messages.length - 2; i++) {
-    if (messages[i].role === "user") {
-      pairs.push({ user: messages[i], assistant: messages[i + 1] ?? null });
-    }
-  }
-  if (pairs.length === 0) return null;
-
-  return (
-    <div className="mb-4">
-      <button
-        className="flex items-center gap-2 mb-2"
-        onClick={() => setOpen(o => !o)}>
-        <span className="font-mono text-[10px] uppercase tracking-widest"
-          style={{ color: "var(--r-dim)" }}>
-          {open ? "▾" : "▸"} Previous builds ({pairs.length})
-        </span>
-      </button>
-      {open && (
-        <div className="space-y-2 animate-panel-in">
-          {pairs.slice().reverse().map(({ user, assistant }, i) => (
-            <div key={user.id} className="border px-4 py-2.5"
-              style={{ borderColor: "var(--r-border)", backgroundColor: "var(--r-surface)" }}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-mono text-[9px]" style={{ color: "var(--r-dim)" }}>
-                  build #{currentBuildNum - 1 - i}
-                </span>
-                <span className="font-mono text-[9px]" style={{ color: "var(--r-dim)" }}>
-                  {new Date(user.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
-              </div>
-              <p className="text-xs" style={{ color: "var(--r-text)" }}>{user.content}</p>
-              {assistant?.content && (
-                <p className="text-xs mt-1 line-clamp-2" style={{ color: "var(--r-subtext)" }}>
-                  {assistant.content.slice(0, 160)}{assistant.content.length > 160 ? "…" : ""}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── Canonical sub-components ───────────────────────────────── */
-
-function ProgressBar({ pct, streaming }: { pct: number; streaming: boolean }) {
-  return (
-    <div className="h-1 w-full rounded-full overflow-hidden"
-      style={{ backgroundColor: "var(--r-border)" }}>
-      <div
-        className="h-full rounded-full transition-all duration-700"
-        style={{
-          width: `${Math.min(100, Math.max(0, pct))}%`,
-          backgroundColor: "var(--r-ok)",
-          opacity: streaming ? 0.7 : 1,
-        }}
-      />
-    </div>
-  );
-}
-
-function ChecklistItem({
-  text,
-  checked,
-  placeholder = false,
-}: {
-  text:         string;
-  checked:      boolean;
-  placeholder?: boolean;
-}) {
-  return (
-    <div className="flex items-start gap-2.5">
-      <span
-        className="w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 mt-0.5"
-        style={{
-          borderColor:     checked ? "var(--r-ok)" : "var(--r-border)",
-          backgroundColor: checked ? "var(--r-ok)" : "transparent",
-          opacity:         placeholder ? 0.3 : 1,
-        }}
-      >
-        {checked && (
-          <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-            <path d="M1.5 4l2 2 3-3.5" stroke="white" strokeWidth="1.2"
-              strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        )}
-      </span>
-      <span
-        className="text-xs leading-relaxed"
-        style={{
-          color:   placeholder ? "var(--r-dim)" :
-                   checked     ? "var(--r-subtext)" : "var(--r-text)",
-          opacity: placeholder ? 0.5 : 1,
-        }}
-      >
-        {text}
-      </span>
-    </div>
-  );
-}
-
-const PHASE_SEQUENCE: BuildPhase[] = ["ready", "briefing", "building", "reviewing", "done"];
-const PHASE_LABEL: Record<BuildPhase, string> = {
-  ready:     "Ready",
-  briefing:  "Brief",
-  building:  "Build",
-  reviewing: "Review",
-  done:      "Done",
-};
-
-function PhaseStrip({
-  phase,
-  stepsRemaining,
-  blocking,
-}: {
-  phase:          BuildPhase;
-  stepsRemaining: number;
-  blocking:       string | null;
-}) {
-  const currentIdx = PHASE_SEQUENCE.indexOf(phase);
-
-  return (
-    <div
-      className="flex items-center px-5 py-2 border-t"
-      style={{ borderColor: "var(--r-border-soft)", backgroundColor: "var(--r-elevated)" }}
-    >
-      {/* Phase sequence */}
-      <div className="flex items-center flex-1 min-w-0">
-        {PHASE_SEQUENCE.map((p, i) => {
-          const isDone    = i < currentIdx;
-          const isActive  = i === currentIdx;
-          const isPending = i > currentIdx;
-          return (
-            <span
-              key={p}
-              className="font-mono"
-              style={{
-                fontSize:        "9px",
-                color:           isDone   ? "var(--r-ok)"   :
-                                 isActive ? "var(--r-text)"  :
-                                 "var(--r-dim)",
-                opacity:         isPending ? 0.45 : 1,
-                padding:         "1px 5px",
-                backgroundColor: isActive ? "var(--r-border)" : "transparent",
-              }}
-            >
-              {PHASE_LABEL[p]}
-              {i < PHASE_SEQUENCE.length - 1 && (
-                <span style={{ color: "var(--r-dim)", marginLeft: "3px" }}>›</span>
-              )}
-            </span>
-          );
-        })}
-      </div>
-
-      {/* Right meta — only shown when meaningful */}
-      <div className="flex items-center gap-3 shrink-0">
-        {stepsRemaining > 0 && (
-          <span className="font-mono" style={{ fontSize: "9px", color: "var(--r-subtext)" }}>
-            {stepsRemaining} remaining
-          </span>
-        )}
-        {blocking && blocking !== "none" && (
-          <span className="font-mono" style={{ fontSize: "9px", color: "var(--r-warn)" }}>
-            blocking: {blocking}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ActiveChip() {
+function Chip({ label, active = false }: { label: string; active?: boolean }) {
   return (
     <span
-      className="font-mono flex items-center gap-1.5 shrink-0"
       style={{
-        fontSize:        "9px",
-        color:           "var(--r-ok)",
-        backgroundColor: "color-mix(in srgb, var(--r-ok) 10%, var(--r-surface))",
-        border:          "1px solid color-mix(in srgb, var(--r-ok) 25%, var(--r-border))",
-        padding:         "2px 8px",
-        marginLeft:      "12px",
+        fontSize:        "11px",
+        padding:         "3px 10px",
+        borderRadius:    "999px",
+        border:          "1px solid var(--r-border)",
+        backgroundColor: active ? "var(--r-chip-active)" : "var(--r-chip-bg)",
+        color:           active ? "var(--r-cta-text)" : "var(--r-subtext)",
+        fontWeight:      active ? 500 : 400,
       }}
     >
-      <span
-        className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0"
-        style={{ backgroundColor: "var(--r-ok)" }}
-      />
-      running
+      {label}
     </span>
   );
 }
 
-function MetaAction({ label, icon }: { label: string; icon: string }) {
+function capitalize(s: string) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+/* ── Icons ──────────────────────────────────────────────────── */
+function IcT() {
   return (
-    <button
-      className="flex items-center gap-1 font-mono text-[9px] transition-colors duration-150"
-      style={{ color: "var(--r-dim)" }}
-      title={`${label} — coming soon`}
-    >
-      <span>{icon}</span>
-      <span>{label}</span>
-    </button>
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+      <path d="M3 4h10M8 4v9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
   );
 }
-
-function BuildGlyph({ active = false }: { active?: boolean }) {
+function IcVisual() {
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-      style={{ color: active ? "var(--r-ok)" : "var(--r-subtext)" }}>
-      <rect x="1" y="1" width="10" height="10" rx="1" stroke="currentColor" strokeWidth="1.1" />
-      <path d="M3.5 6h5M3.5 4h3M3.5 8h4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+      <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.2" />
+      <circle cx="6" cy="6" r="1.5" stroke="currentColor" strokeWidth="1.1" />
+      <path d="M2 11l4-3 3 3 2-2 3 3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IcCode() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+      <path d="M5 5L2 8l3 3M11 5l3 3-3 3M9 3l-2 10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IcDoc() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+      <path d="M4 2h6l4 4v8H4V2z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M9 2v4h4" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 9h4M6 12h3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+    </svg>
+  );
+}
+function IcMic() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+      <rect x="5.5" y="1.5" width="5" height="8" rx="2.5" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M3 9a5 5 0 0010 0" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M8 14v1.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   );
 }

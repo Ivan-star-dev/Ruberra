@@ -10,12 +10,25 @@ export interface Message {
 
 export type SignalStatus = "idle" | "streaming" | "completed" | "error";
 
-/* Chamber-specific views */
-export type LabView      = "chat" | "research" | "code" | "analysis" | "summary" | "archive";
-export type SchoolView   = "chat" | "library"  | "archive";
-export type CreationView = "chat" | "terminal" | "archive";
+/* Lab views */
+export type LabView = "home" | "research" | "analysis" | "code" | "general";
 
-export type ChamberView = LabView | SchoolView | CreationView;
+/* School views */
+export type SchoolView = "curriculum" | "lesson" | "archive";
+
+/* Creation views */
+export type CreationView = "create" | "archive";
+
+/* Creation output types (left panel) */
+export type OutputType = "prose" | "visual" | "code" | "document" | "voice";
+
+/* Creation parameters */
+export interface CreationParams {
+  outputType: OutputType;
+  tone:       "precise" | "neutral" | "expressive" | "formal";
+  length:     "brief" | "standard" | "extended";
+  audience:   "expert" | "general" | "executive";
+}
 
 /* Floating note */
 export interface FloatingNote {
@@ -28,10 +41,10 @@ export interface FloatingNote {
   timestamp: number;
 }
 
-/* App-wide theme */
-export type Theme = "dark" | "light";
+/* Theme */
+export type Theme = "light" | "dark";
 
-/* Session stats passed to the status bar */
+/* Session stats */
 export interface SessionStats {
   latencyMs: number;
   model:     string;

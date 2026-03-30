@@ -3,100 +3,103 @@
 @tailwind utilities;
 
 /* ─────────────────────────────────────────────────────────────
-   RUBERRA DESIGN TOKENS — dark (default)
-   Mineral palette: warm stone, bone, smoke, ink, slate indigo
+   RUBERRA TOKENS — light (default)
+   Reference: bright off-white, low-contrast separation
    ───────────────────────────────────────────────────────────── */
 :root {
   /* Ground */
-  --r-bg:          #0e0d0c;
-  --r-surface:     #151412;
-  --r-rail:        #110f0e;
-  --r-elevated:    #1c1a18;
+  --r-bg:           #f4f4f2;
+  --r-surface:      #ffffff;
+  --r-surface-2:    #f9f9f7;
+  --r-rail:         #f0f0ee;
+  --r-elevated:     #ffffff;
+  --r-panel:        #f7f7f5;
 
   /* Borders */
-  --r-border:      #252220;
-  --r-border-soft: #1e1c1a;
+  --r-border:       #e4e3e0;
+  --r-border-soft:  #ececea;
+  --r-divider:      #e8e7e4;
 
   /* Text */
-  --r-text:        #e4e0d8;
-  --r-subtext:     #7a756d;
-  --r-dim:         #3d3a36;
-  --r-muted:       #4a4640;
+  --r-text:         #1a1a18;
+  --r-text-2:       #3a3a38;
+  --r-subtext:      #6b6b68;
+  --r-dim:          #a0a09e;
+  --r-muted:        #c4c4c2;
 
-  /* Accent — slate indigo, not electric */
-  --r-accent:      #7c74c0;
-  --r-accent-soft: #5c5699;
-  --r-accent-dim:  #2e2a55;
+  /* Accent — slate indigo kept but used only where reference shows it */
+  --r-accent:       #3d3d8f;
+  --r-accent-soft:  #6060b8;
 
-  /* Semantic status — soft, readable, not aggressive */
-  --r-ok:          #5d9467;
-  --r-warn:        #9e8a42;
-  --r-err:         #8c4a4a;
-  --r-pulse:       #5d9467;
+  /* Status */
+  --r-ok:           #2d7d4e;
+  --r-warn:         #8a6a1a;
+  --r-err:          #8a2a2a;
+  --r-pulse:        #2d7d4e;
 
-  /* Terminal regime — rt namespace, Creation + Lab code only */
-  --rt-bg:           #1a1714;
-  --rt-surface:      #201d19;
-  --rt-border:       #2c2822;
-  --rt-border-dash:  #36302a;
-  --rt-text:         #ccc5ba;
-  --rt-subtext:      #7a6f62;
-  --rt-dim:          #443e37;
-  --rt-copper:       #9e5f28;
-  --rt-amber:        #b8862a;
-  --rt-amber-glow:   #c8982e;
-  --rt-ok:           #5a8c5a;
-  --rt-warn:         #8c7a2a;
-  --rt-err:          #8c4040;
+  /* Dark CTA — the dark buttons in reference (Generate, Resume) */
+  --r-cta-bg:       #1a1a18;
+  --r-cta-text:     #ffffff;
+
+  /* Active pill / chip */
+  --r-pill-bg:      #1a1a18;
+  --r-pill-text:    #ffffff;
+
+  /* Active chip (lighter) */
+  --r-chip-bg:      #ededeb;
+  --r-chip-active:  #1a1a18;
+  --r-chip-text:    #1a1a18;
+
+  /* Terminal regime — isolated to Lab code / LabCodeOrgan */
+  --rt-bg:          #1c1a17;
+  --rt-surface:     #231f1a;
+  --rt-border:      #2e2922;
+  --rt-border-dash: #3a3228;
+  --rt-text:        #d4cfc6;
+  --rt-subtext:     #7a7062;
+  --rt-dim:         #4a4438;
+  --rt-copper:      #b5651d;
+  --rt-amber:       #c8922a;
+  --rt-amber-glow:  #d4a843;
+  --rt-ok:          #6b9e6b;
+  --rt-warn:        #b59a3a;
+  --rt-err:         #9e5a5a;
 }
 
-/* ─────────────────────────────────────────────────────────────
-   LIGHT MODE — mineral white, bone, stone
-   ───────────────────────────────────────────────────────────── */
-[data-theme="light"] {
-  --r-bg:          #f5f3ef;
-  --r-surface:     #ffffff;
-  --r-rail:        #eeece8;
-  --r-elevated:    #fafaf8;
+/* ── Dark override (togglable) ────────────────────────────── */
+[data-theme="dark"] {
+  --r-bg:           #0e0d0c;
+  --r-surface:      #151412;
+  --r-surface-2:    #1a1816;
+  --r-rail:         #110f0e;
+  --r-elevated:     #1c1a18;
+  --r-panel:        #181614;
 
-  --r-border:      #d8d4cc;
-  --r-border-soft: #e4e0d8;
+  --r-border:       #252220;
+  --r-border-soft:  #1e1c1a;
+  --r-divider:      #222020;
 
-  --r-text:        #1a1714;
-  --r-subtext:     #736e66;
-  --r-dim:         #bab5ac;
-  --r-muted:       #a8a39a;
+  --r-text:         #e4e0d8;
+  --r-text-2:       #c8c4bc;
+  --r-subtext:      #7a756d;
+  --r-dim:          #3d3a36;
+  --r-muted:        #4a4640;
 
-  --r-accent:      #5c549a;
-  --r-accent-soft: #7c74c0;
-  --r-accent-dim:  #dddaf5;
+  --r-cta-bg:       #e4e0d8;
+  --r-cta-text:     #1a1a18;
 
-  --r-ok:          #3d7a47;
-  --r-warn:        #7a6420;
-  --r-err:         #7a3030;
-  --r-pulse:       #3d7a47;
+  --r-pill-bg:      #e4e0d8;
+  --r-pill-text:    #1a1a18;
 
-  --rt-bg:           #f0ece6;
-  --rt-surface:      #e8e2da;
-  --rt-border:       #ccc4b8;
-  --rt-border-dash:  #bfb8ae;
-  --rt-text:         #2a2420;
-  --rt-subtext:      #6e6258;
-  --rt-dim:          #b0a89e;
-  --rt-copper:       #8a4e1a;
-  --rt-amber:        #9a6e1a;
-  --rt-amber-glow:   #b07e20;
-  --rt-ok:           #3d6e3d;
-  --rt-warn:         #706018;
-  --rt-err:          #703030;
+  --r-chip-bg:      #252220;
+  --r-chip-active:  #e4e0d8;
+  --r-chip-text:    #e4e0d8;
 }
 
-* {
-  box-sizing: border-box;
-}
+/* ── Reset ────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
 
-html,
-body {
+html, body {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -104,38 +107,24 @@ body {
   color: var(--r-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  font-size: 13px;
 }
 
-/* ── Scrollbar — unobtrusive ──────────────────────────────── */
+/* ── Scrollbar ────────────────────────────────────────────── */
 ::-webkit-scrollbar       { width: 3px; height: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--r-border); }
-::-webkit-scrollbar-thumb:hover { background: var(--r-muted); }
 
-/* ── Placeholder text — consistent dim color ──────────────── */
+/* ── Placeholder ──────────────────────────────────────────── */
 ::placeholder             { color: var(--r-dim); opacity: 1; }
-::-webkit-input-placeholder { color: var(--r-dim); }
-::-moz-placeholder        { color: var(--r-dim); opacity: 1; }
 
-/* ── Focus ring — minimal, consistent ────────────────────── */
-:focus-visible {
-  outline: 1.5px solid var(--r-accent);
-  outline-offset: 2px;
-}
-
-/* Remove default focus ring on buttons */
-button:focus { outline: none; }
-button:focus-visible {
-  outline: 1.5px solid var(--r-accent);
-  outline-offset: 2px;
-}
+/* ── Focus ────────────────────────────────────────────────── */
+:focus-visible { outline: 1.5px solid var(--r-accent); outline-offset: 2px; }
+button:focus   { outline: none; }
 
 /* ── Animations ───────────────────────────────────────────── */
-.r-panel-enter {
-  animation: panelReveal 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-@keyframes panelReveal {
-  from { opacity: 0; transform: translateY(4px); }
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(3px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+.animate-panel-in { animation: panel-in 0.16s cubic-bezier(0.16,1,0.3,1) forwards; }

@@ -15,27 +15,32 @@ const TABS: { id: Tab; label: string }[] = [
 
 export default function TabSwitcher({ activeTab, onTabChange }: TabSwitcherProps) {
   return (
-    <nav className="flex items-center" aria-label="Ruberra chambers">
+    <nav className="flex items-center gap-1" aria-label="Ruberra chambers">
       {TABS.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className="relative px-4 py-3 text-xs font-medium tracking-wide transition-colors duration-150 select-none"
+            className="flex items-center gap-1.5 transition-all duration-150 select-none"
             style={{
-              color: isActive ? "var(--r-text)" : "var(--r-subtext)",
+              fontSize:        "13px",
+              fontWeight:      isActive ? 500 : 400,
+              padding:         "5px 14px",
+              borderRadius:    "999px",
+              backgroundColor: isActive ? "var(--r-pill-bg)" : "transparent",
+              color:           isActive ? "var(--r-pill-text)" : "var(--r-subtext)",
             }}
             aria-current={isActive ? "page" : undefined}
           >
-            {tab.label}
-            {/* Underline indicator — premium, not pill */}
+            {/* Dot prefix — only on active */}
             {isActive && (
               <span
-                className="absolute bottom-0 left-4 right-4 h-px"
-                style={{ backgroundColor: "var(--r-accent)" }}
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: "var(--r-pill-text)", opacity: 0.6 }}
               />
             )}
+            {tab.label}
           </button>
         );
       })}
