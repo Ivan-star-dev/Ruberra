@@ -1,5 +1,7 @@
 "use client";
 
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   parseBlocks,
   type OutputBlock,
@@ -21,16 +23,97 @@ interface RenderedOutputProps {
 // ---------------------------------------------------------------------------
 
 function ProseRenderer({ text }: { text: string }) {
-  // Preserve paragraph breaks
-  const paragraphs = text.split(/\n{2,}/).filter(Boolean);
   return (
-    <div className="space-y-2">
-      {paragraphs.map((p, i) => (
-        <p key={i} className="text-[13.5px] leading-[1.65] text-ruberra-text whitespace-pre-wrap">
-          {p}
-        </p>
-      ))}
-    </div>
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p: ({ children }) => (
+          <p className="text-[13.5px] leading-[1.65] text-ruberra-text mb-2 last:mb-0">
+            {children}
+          </p>
+        ),
+        strong: ({ children }) => (
+          <strong className="font-semibold text-ruberra-text">{children}</strong>
+        ),
+        em: ({ children }) => (
+          <em className="italic text-ruberra-text">{children}</em>
+        ),
+        code: ({ children, className }) => {
+          // Inline code only — fenced code is handled by pre+code
+          const isInline = !className;
+          if (isInline) {
+            return (
+              <code
+                className="font-mono text-[12px] px-1.5 py-0.5 rounded text-ruberra-text/90"
+                style={{ background: "#f0efed", border: "1px solid #e2e0dc" }}
+              >
+                {children}
+              </code>
+            );
+          }
+          return (
+            <code className="font-mono text-[12px] text-ruberra-text/90 leading-relaxed">
+              {children}
+            </code>
+          );
+        },
+        pre: ({ children }) => (
+          <pre
+            className="rounded-lg px-4 py-3 overflow-x-auto my-2"
+            style={{ background: "#f0efed", border: "1px solid #e2e0dc" }}
+          >
+            {children}
+          </pre>
+        ),
+        ul: ({ children }) => (
+          <ul className="my-1.5 space-y-0.5 pl-4">{children}</ul>
+        ),
+        ol: ({ children }) => (
+          <ol className="my-1.5 space-y-0.5 pl-4 list-decimal">{children}</ol>
+        ),
+        li: ({ children }) => (
+          <li className="text-[13.5px] leading-[1.65] text-ruberra-text list-disc marker:text-ruberra-muted">
+            {children}
+          </li>
+        ),
+        blockquote: ({ children }) => (
+          <blockquote
+            className="pl-3 my-2 text-ruberra-subtext text-[13px] leading-relaxed"
+            style={{ borderLeft: "2px solid #d6d4cf" }}
+          >
+            {children}
+          </blockquote>
+        ),
+        a: ({ href, children }) => (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-ruberra-accent underline underline-offset-2 hover:text-ruberra-accent-2"
+          >
+            {children}
+          </a>
+        ),
+        hr: () => <hr className="my-3 border-ruberra-border" />,
+        h1: ({ children }) => (
+          <h1 className="text-[15px] font-semibold text-ruberra-text mt-3 mb-1.5 tracking-tight">
+            {children}
+          </h1>
+        ),
+        h2: ({ children }) => (
+          <h2 className="text-[14px] font-semibold text-ruberra-text mt-3 mb-1 tracking-tight">
+            {children}
+          </h2>
+        ),
+        h3: ({ children }) => (
+          <h3 className="text-[13.5px] font-medium text-ruberra-text mt-2.5 mb-1">
+            {children}
+          </h3>
+        ),
+      }}
+    >
+      {text}
+    </ReactMarkdown>
   );
 }
 
