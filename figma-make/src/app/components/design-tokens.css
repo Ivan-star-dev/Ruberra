@@ -1,0 +1,72 @@
+/* RUBERRA r-* design tokens
+ * Light mode (default) + dark mode via [data-theme="dark"]
+ * Mineral palette: warm stone, bone, smoke, ink, slate indigo
+ */
+
+:root {
+  /* Ground */
+  --r-bg:          #f5f3ef;
+  --r-surface:     #ffffff;
+  --r-rail:        #eeece8;
+  --r-elevated:    #fafaf8;
+
+  /* Borders */
+  --r-border:      #d8d4cc;
+  --r-border-soft: #e4e0d8;
+
+  /* Text */
+  --r-text:        #1a1714;
+  --r-subtext:     #736e66;
+  --r-dim:         #bab5ac;
+  --r-muted:       #a8a39a;
+
+  /* Accent — slate indigo, not electric */
+  --r-accent:      #5c549a;
+  --r-accent-soft: #7c74c0;
+  --r-accent-dim:  #dddaf5;
+
+  /* Semantic */
+  --r-ok:          #3d7a47;
+  --r-warn:        #7a6420;
+  --r-err:         #7a3030;
+  --r-pulse:       #3d7a47;
+
+  /* Terminal regime — rt namespace */
+  --rt-bg:         #f0ece6;
+  --rt-surface:    #e8e2da;
+  --rt-border:     #ccc4b8;
+  --rt-text:       #2a2420;
+  --rt-subtext:    #6e6258;
+  --rt-amber:      #9a6e1a;
+  --rt-ok:         #3d6e3d;
+  --rt-err:        #703030;
+}
+
+/* Dark theme */
+[data-theme="dark"] {
+  --r-bg:          #0e0d0c;
+  --r-surface:     #151412;
+  --r-rail:        #110f0e;
+  --r-elevated:    #1c1a18;
+  --r-border:      #252220;
+  --r-border-soft: #1e1c1a;
+  --r-text:        #e4e0d8;
+  --r-subtext:     #7a756d;
+  --r-dim:         #3d3a36;
+  --r-muted:       #4a4640;
+  --r-accent:      #7c74c0;
+  --r-accent-soft: #5c5699;
+  --r-accent-dim:  #2e2a55;
+  --r-ok:          #5d9467;
+  --r-warn:        #9e8a42;
+  --r-err:         #8c4a4a;
+  --r-pulse:       #5d9467;
+  --rt-bg:         #1a1714;
+  --rt-surface:    #201d19;
+  --rt-border:     #2c2822;
+  --rt-text:       #ccc5ba;
+  --rt-subtext:    #7a6f62;
+  --rt-amber:      #b8862a;
+  --rt-ok:         #5a8c5a;
+  --rt-err:        #8c4040;
+}
