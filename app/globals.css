@@ -2,7 +2,93 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────
+   RUBERRA DESIGN TOKENS — dark (default)
+   Mineral palette: warm stone, bone, smoke, ink, slate indigo
+   ───────────────────────────────────────────────────────────── */
 :root {
+  /* Ground */
+  --r-bg:          #0e0d0c;
+  --r-surface:     #151412;
+  --r-rail:        #110f0e;
+  --r-elevated:    #1c1a18;
+
+  /* Borders */
+  --r-border:      #252220;
+  --r-border-soft: #1e1c1a;
+
+  /* Text */
+  --r-text:        #e4e0d8;
+  --r-subtext:     #7a756d;
+  --r-dim:         #3d3a36;
+  --r-muted:       #4a4640;
+
+  /* Accent — slate indigo, not electric */
+  --r-accent:      #7c74c0;
+  --r-accent-soft: #5c5699;
+  --r-accent-dim:  #2e2a55;
+
+  /* Semantic status — soft, readable, not aggressive */
+  --r-ok:          #5d9467;
+  --r-warn:        #9e8a42;
+  --r-err:         #8c4a4a;
+  --r-pulse:       #5d9467;
+
+  /* Terminal regime — rt namespace, Creation + Lab code only */
+  --rt-bg:           #1a1714;
+  --rt-surface:      #201d19;
+  --rt-border:       #2c2822;
+  --rt-border-dash:  #36302a;
+  --rt-text:         #ccc5ba;
+  --rt-subtext:      #7a6f62;
+  --rt-dim:          #443e37;
+  --rt-copper:       #9e5f28;
+  --rt-amber:        #b8862a;
+  --rt-amber-glow:   #c8982e;
+  --rt-ok:           #5a8c5a;
+  --rt-warn:         #8c7a2a;
+  --rt-err:          #8c4040;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   LIGHT MODE — mineral white, bone, stone
+   ───────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --r-bg:          #f5f3ef;
+  --r-surface:     #ffffff;
+  --r-rail:        #eeece8;
+  --r-elevated:    #fafaf8;
+
+  --r-border:      #d8d4cc;
+  --r-border-soft: #e4e0d8;
+
+  --r-text:        #1a1714;
+  --r-subtext:     #736e66;
+  --r-dim:         #bab5ac;
+  --r-muted:       #a8a39a;
+
+  --r-accent:      #5c549a;
+  --r-accent-soft: #7c74c0;
+  --r-accent-dim:  #dddaf5;
+
+  --r-ok:          #3d7a47;
+  --r-warn:        #7a6420;
+  --r-err:         #7a3030;
+  --r-pulse:       #3d7a47;
+
+  --rt-bg:           #f0ece6;
+  --rt-surface:      #e8e2da;
+  --rt-border:       #ccc4b8;
+  --rt-border-dash:  #bfb8ae;
+  --rt-text:         #2a2420;
+  --rt-subtext:      #6e6258;
+  --rt-dim:          #b0a89e;
+  --rt-copper:       #8a4e1a;
+  --rt-amber:        #9a6e1a;
+  --rt-amber-glow:   #b07e20;
+  --rt-ok:           #3d6e3d;
+  --rt-warn:         #706018;
+  --rt-err:          #703030;
   --ruberra-bg:      #f5f4f2;
   --ruberra-surface: #fafaf8;
   --ruberra-rail:    #f0efed;
@@ -25,10 +111,31 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
-  background-color: var(--ruberra-bg);
-  color: var(--ruberra-text);
+  background-color: var(--r-bg);
+  color: var(--r-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Scrollbar — unobtrusive */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--r-border); border-radius: 2px; }
+
+/* Smooth panel transitions */
+.r-panel-enter {
+  animation: panelReveal 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes panelReveal {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Focus ring override — minimal */
+:focus-visible {
+  outline: 1.5px solid var(--r-accent);
+  outline-offset: 2px;
 }
 
 /* Mineral scrollbar */

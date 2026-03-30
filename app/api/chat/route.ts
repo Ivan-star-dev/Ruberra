@@ -13,6 +13,12 @@ interface RequestBody {
 }
 
 const SYSTEM_PROMPTS: Record<string, string> = {
+  lab:
+    "You are the Ruberra Lab kernel — a rigorous analytical intelligence. Think carefully, expose hidden structure, reason precisely, and be substantive. No filler, no preamble. Precision above comfort.",
+  school:
+    "You are the Ruberra School guide — a clear, structured teacher. Explain from first principles, correct misconceptions directly, build layered understanding. Be warm but precise. Pedagogy without condescension.",
+  creation:
+    "You are the Ruberra Creation forge — a senior builder AI. Help design, draft, and construct real things. Push back on weak architecture, suggest concrete improvements. Think in systems. Be direct and artifact-oriented.",
   lab: `You are a rigorous analytical intelligence inside Ruberra Lab. Think carefully, reason precisely, and expose hidden structure in problems. Be concise and substantive. No filler.
 
 When your response is analytical or evaluative, structure it using these block types:
@@ -160,6 +166,14 @@ function makeFallbackStream(tab: string): ReadableStream<Uint8Array> {
   let i = 0;
 
   return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      if (i >= text.length) {
+        controller.close();
+        return;
+      }
+      controller.enqueue(encoder.encode(text[i]));
+      i++;
+      await new Promise((r) => setTimeout(r, 14));
     start(controller) {
       // Brief "thinking" pause before first character
       setTimeout(function emit() {
@@ -185,9 +199,8 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const { tab, messages } = body;
-
-  // Real OpenAI path
   const apiKey = process.env.OPENAI_API_KEY;
+
   if (apiKey) {
     const systemMessage: ChatMessage = {
       role: "system",
@@ -208,11 +221,7 @@ export async function POST(req: Request): Promise<Response> {
         }),
       });
 
-      if (!upstream.ok) {
-        // Fall through to fallback on upstream error
-        console.error("OpenAI upstream error", upstream.status);
-      } else if (upstream.body) {
-        // Parse SSE and emit only the text content as a plain text stream
+      if (upstream.ok && upstream.body) {
         const encoder = new TextEncoder();
         const decoder = new TextDecoder();
 
@@ -234,11 +243,9 @@ export async function POST(req: Request): Promise<Response> {
                       choices?: { delta?: { content?: string } }[];
                     };
                     const content = parsed.choices?.[0]?.delta?.content;
-                    if (content) {
-                      controller.enqueue(encoder.encode(content));
-                    }
+                    if (content) controller.enqueue(encoder.encode(content));
                   } catch {
-                    // Malformed SSE line — skip
+                    // malformed SSE line — skip
                   }
                 }
               }
@@ -254,11 +261,10 @@ export async function POST(req: Request): Promise<Response> {
         });
       }
     } catch (err) {
-      console.error("OpenAI fetch failed, using fallback", err);
+      console.error("[Ruberra] OpenAI fetch failed, using fallback", err);
     }
   }
 
-  // Fallback: server-side simulated stream
   return new Response(makeFallbackStream(tab), {
     headers: { "Content-Type": "text/plain; charset=utf-8" },
   });
