@@ -5,89 +5,105 @@ import TopBar from "./TopBar";
 import SideRail from "./SideRail";
 import MainSurface from "./MainSurface";
 import { type Tab } from "./TabSwitcher";
-import { type Message } from "./types";
+import { type Message, type Signal } from "./types";
 
-const SIMULATED_RESPONSES: Record<Tab, string[]> = {
-  lab: [
-    "Reasoning kernel initialized. Processing your query against the active context layer.",
-    "Analysis complete. The signal pattern you described aligns with the second-order effect model. Here is the derived output.",
-    "Hypothesis logged. Running cross-reference against prior session artifacts.",
-    "Experimental branch opened. Confidence: high.",
-  ],
-  school: [
-    "Curriculum context loaded. Let me break this down into first-principles components.",
-    "Concept retrieved. The core mechanism here is best understood through the following structured decomposition.",
-    "Study path generated. Three interconnected knowledge nodes are relevant to your question.",
-    "Understanding confirmed. The distinction you are drawing is precise and correct.",
-  ],
-  creation: [
-    "Builder kernel active. Generating structured output from your directive.",
-    "Draft produced. Review the output and specify refinements as needed.",
-    "Creation artifact initialized. The composition follows your intent with one interpretive expansion.",
-    "Output complete. Artifact registered to the current session.",
-  ],
-};
+const IDLE_SIGNAL: Signal = { status: "idle", label: "Idle", tab: null };
 
-function pickResponse(tab: Tab, count: number): string {
-  const pool = SIMULATED_RESPONSES[tab];
-  return pool[count % pool.length];
+function toApiMessages(msgs: Message[], tab: Tab) {
+  return msgs
+    .filter((m) => m.tab === tab && !m.streaming)
+    .map((m) => ({ role: m.role, content: m.content }));
 }
 
 export default function RuberraShell() {
   const [activeTab, setActiveTab] = useState<Tab>("lab");
   const [messages, setMessages] = useState<Message[]>([]);
   const [streaming, setStreaming] = useState(false);
-  const turnCount = useRef<Record<Tab, number>>({ lab: 0, school: 0, creation: 0 });
+  const [signal, setSignal] = useState<Signal>(IDLE_SIGNAL);
+
+  // Stable ref so handleSubmit never stales on messages
+  const messagesRef = useRef<Message[]>(messages);
+  messagesRef.current = messages;
 
   const handleSubmit = useCallback(
-    (text: string) => {
+    async (text: string) => {
+      const tab = activeTab;
+
       const userMsg: Message = {
         id: `u-${Date.now()}`,
         role: "user",
         content: text,
-        tab: activeTab,
+        tab,
         timestamp: Date.now(),
       };
 
       setMessages((prev) => [...prev, userMsg]);
       setStreaming(true);
-
-      const count = turnCount.current[activeTab];
-      const fullResponse = pickResponse(activeTab, count);
-      turnCount.current[activeTab] = count + 1;
+      setSignal({ status: "streaming", label: "Streaming", tab });
 
       const assistantId = `a-${Date.now()}`;
-      const streamingMsg: Message = {
-        id: assistantId,
-        role: "assistant",
-        content: "",
-        tab: activeTab,
-        timestamp: Date.now(),
-        streaming: true,
-      };
 
-      setMessages((prev) => [...prev, streamingMsg]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: assistantId,
+          role: "assistant",
+          content: "",
+          tab,
+          timestamp: Date.now(),
+          streaming: true,
+        },
+      ]);
 
-      // Character-by-character stream simulation
-      let i = 0;
-      const interval = setInterval(() => {
-        i += 1;
-        const chunk = fullResponse.slice(0, i);
-        const done = i >= fullResponse.length;
+      try {
+        const history = toApiMessages([...messagesRef.current, userMsg], tab);
+
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tab, messages: history }),
+        });
+
+        if (!res.ok || !res.body) {
+          throw new Error(`API error ${res.status}`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulated = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          accumulated += decoder.decode(value, { stream: true });
+          const snapshot = accumulated;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, content: snapshot, streaming: true } : m
+            )
+          );
+        }
 
         setMessages((prev) =>
           prev.map((m) =>
+            m.id === assistantId ? { ...m, streaming: false } : m
+          )
+        );
+        setSignal({ status: "completed", label: "Completed", tab });
+      } catch (err) {
+        console.error("[Ruberra] stream error", err);
+        setMessages((prev) =>
+          prev.map((m) =>
             m.id === assistantId
-              ? { ...m, content: chunk, streaming: !done }
+              ? { ...m, content: "Stream error. Please try again.", streaming: false }
               : m
           )
         );
-
-        if (done) {
-          clearInterval(interval);
-          setStreaming(false);
-        }
-      }, 18);
+        setSignal({ status: "error", label: "Error", tab });
+      } finally {
+        setStreaming(false);
+        setTimeout(() => setSignal(IDLE_SIGNAL), 2400);
+      }
     },
     [activeTab]
   );
@@ -96,7 +112,7 @@ export default function RuberraShell() {
     <div className="h-screen w-screen flex flex-col bg-ruberra-bg overflow-hidden">
       <TopBar activeTab={activeTab} onTabChange={setActiveTab} />
       <div className="flex flex-1 min-h-0">
-        <SideRail activeTab={activeTab} messages={messages} />
+        <SideRail activeTab={activeTab} messages={messages} signal={signal} />
         <MainSurface
           activeTab={activeTab}
           messages={messages}

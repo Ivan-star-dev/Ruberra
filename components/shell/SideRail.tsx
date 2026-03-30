@@ -1,11 +1,12 @@
 "use client";
 
 import { type Tab } from "./TabSwitcher";
-import { type Message } from "./types";
+import { type Message, type Signal, type SignalStatus } from "./types";
 
 interface SideRailProps {
   activeTab: Tab;
   messages: Message[];
+  signal: Signal;
 }
 
 interface SectionProps {
@@ -32,12 +33,38 @@ function EmptySlot({ label }: { label: string }) {
   );
 }
 
-const SIGNALS = [
-  { id: "s1", label: "Idle", active: true, color: "bg-ruberra-pulse" },
-  { id: "s2", label: "No active run", active: false, color: "bg-ruberra-subtext/40" },
-];
+const SIGNAL_DOT: Record<SignalStatus, string> = {
+  idle:      "bg-ruberra-pulse/60",
+  streaming: "bg-ruberra-accent animate-pulse",
+  completed: "bg-ruberra-pulse",
+  error:     "bg-red-500",
+};
 
-export default function SideRail({ activeTab, messages }: SideRailProps) {
+const SIGNAL_LABEL: Record<SignalStatus, string> = {
+  idle:      "Idle",
+  streaming: "Streaming",
+  completed: "Completed",
+  error:     "Error",
+};
+
+function SignalsSection({ signal }: { signal: Signal }) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2.5">
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${SIGNAL_DOT[signal.status]}`} />
+        <span className="text-ruberra-subtext/70 text-xs">{SIGNAL_LABEL[signal.status]}</span>
+      </div>
+      <div className="flex items-center gap-2.5">
+        <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-ruberra-subtext/20" />
+        <span className="text-ruberra-subtext/40 text-xs">
+          {signal.tab ? `mode · ${signal.tab}` : "no active run"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export default function SideRail({ activeTab, messages, signal }: SideRailProps) {
   const tabMessages = messages.filter((m) => m.tab === activeTab && m.role === "user");
 
   const historyItems = tabMessages
@@ -104,14 +131,7 @@ export default function SideRail({ activeTab, messages }: SideRailProps) {
 
       {/* Signals */}
       <Section label="Signals">
-        <div className="space-y-1.5">
-          {SIGNALS.map((s) => (
-            <div key={s.id} className="flex items-center gap-2.5">
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.color}`} />
-              <span className="text-ruberra-subtext/60 text-xs">{s.label}</span>
-            </div>
-          ))}
-        </div>
+        <SignalsSection signal={signal} />
       </Section>
 
       {/* Mode indicator */}

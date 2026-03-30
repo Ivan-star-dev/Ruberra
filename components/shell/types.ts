@@ -10,3 +10,11 @@ export interface Message {
   timestamp: number;
   streaming?: boolean;
 }
+
+export type SignalStatus = "idle" | "streaming" | "completed" | "error";
+
+export interface Signal {
+  status: SignalStatus;
+  label: string;
+  tab: Tab | null;
+}
