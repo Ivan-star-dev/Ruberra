@@ -1,6 +1,20 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import TopBar             from "./TopBar";
+import SideRail           from "./SideRail";
+import MainSurface        from "./MainSurface";
+import FloatingNoteSystem from "./FloatingNoteSystem";
+import {
+  type Tab,
+  type Message,
+  type SignalStatus,
+  type LabView,
+  type SchoolView,
+  type CreationView,
+  type FloatingNote,
+  type Theme,
+} from "./types";
 import TopBar from "./TopBar";
 import SideRail from "./SideRail";
 import MainSurface from "./MainSurface";
@@ -34,6 +48,33 @@ function loadMessages(): TabMessages {
 }
 
 export default function RuberraShell() {
+  const [activeTab,    setActiveTab]    = useState<Tab>("lab");
+  const [messages,     setMessages]     = useState<TabMessages>(emptyRecord<Message[]>([]));
+  const [loading,      setLoading]      = useState<TabLoading>(emptyRecord(false));
+  const [signals,      setSignals]      = useState<TabSignals>(emptyRecord<SignalStatus>("idle"));
+
+  /* Chamber view state */
+  const [labView,      setLabView]      = useState<LabView>("chat");
+  const [schoolView,   setSchoolView]   = useState<SchoolView>("chat");
+  const [creationView, setCreationView] = useState<CreationView>("chat");
+
+  /* Floating notes */
+  const [notes, setNotes] = useState<FloatingNote[]>([]);
+
+  /* Theme */
+  const [theme, setTheme] = useState<Theme>("dark");
+
+  /* Apply theme to document */
+  useEffect(() => {
+    if (theme === "light") {
+      document.documentElement.setAttribute("data-theme", "light");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  }, [theme]);
+
+  const messagesRef = useRef<TabMessages>(messages);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
   const [activeTab, setActiveTab] = useState<Tab>("lab");
   const [messages,  setMessages]  = useState<TabMessages>(loadMessages);
   const [loading,   setLoading]   = useState<TabLoading>(emptyRecord(false));
@@ -90,6 +131,7 @@ export default function RuberraShell() {
     }));
   }, []);
 
+  /* ── Stream handler ────────────────────────────────────── */
   const handleSend = useCallback(async (text: string) => {
     const tab = activeTab;
 
@@ -102,6 +144,7 @@ export default function RuberraShell() {
       id:        crypto.randomUUID(),
       role:      "user",
       content:   text,
+      tab,
       timestamp: Date.now(),
     };
 
@@ -115,7 +158,7 @@ export default function RuberraShell() {
       ...prev,
       [tab]: [
         ...prev[tab],
-        { id: assistantId, role: "assistant", content: "", timestamp: Date.now() },
+        { id: assistantId, role: "assistant", content: "", tab, timestamp: Date.now() },
       ],
     }));
 
@@ -139,6 +182,14 @@ export default function RuberraShell() {
       const reader  = res.body.getReader();
       const decoder = new TextDecoder();
 
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        setMessages((prev) => ({
+          ...prev,
+          [tab]: prev[tab].map((m) =>
+            m.id === assistantId ? { ...m, content: m.content + chunk } : m
       try {
         while (true) {
           const { done, value } = await reader.read();
@@ -187,6 +238,29 @@ export default function RuberraShell() {
         }, 2400);
       }
 
+      setSignals((prev) => ({ ...prev, [tab]: "completed" }));
+      setTimeout(() => {
+        setSignals((prev) =>
+          prev[tab] === "completed" ? { ...prev, [tab]: "idle" } : prev
+        );
+      }, 2400);
+
+    } catch (err) {
+      console.error("[Ruberra] stream error", err);
+      setMessages((prev) => ({
+        ...prev,
+        [tab]: prev[tab].map((m) =>
+          m.id === assistantId
+            ? { ...m, content: "Error — please try again." }
+            : m
+        ),
+      }));
+      setSignals((prev) => ({ ...prev, [tab]: "error" }));
+      setTimeout(() => {
+        setSignals((prev) =>
+          prev[tab] === "error" ? { ...prev, [tab]: "idle" } : prev
+        );
+      }, 2400);
     } finally {
       setLoading((prev) => ({ ...prev, [tab]: false }));
       abortRefs.current[tab] = null;
@@ -196,16 +270,55 @@ export default function RuberraShell() {
     }
   }, [activeTab, applyParsedBlocks]);
 
+  /* ── Notes handlers ────────────────────────────────────── */
+  function addNote() {
+    const note: FloatingNote = {
+      id:        crypto.randomUUID(),
+      content:   "",
+      tab:       activeTab,
+      pinned:    false,
+      x:         Math.max(80, window.innerWidth / 2 - 128 + Math.random() * 60),
+      y:         Math.max(80, 120 + Math.random() * 80),
+      timestamp: Date.now(),
+    };
+    setNotes((prev) => [...prev, note]);
+  }
+
+  function updateNote(id: string, updates: Partial<FloatingNote>) {
+    setNotes((prev) => prev.map((n) => n.id === id ? { ...n, ...updates } : n));
+  }
+
+  function removeNote(id: string) {
+    setNotes((prev) => prev.filter((n) => n.id !== id || n.pinned));
+  }
+
+  /* ── Render ─────────────────────────────────────────────── */
   return (
-    <div className="h-screen w-screen flex flex-col bg-ruberra-bg overflow-hidden">
-      <TopBar activeTab={activeTab} onTabChange={setActiveTab} />
+    <div className="h-screen w-screen flex flex-col overflow-hidden"
+      style={{ backgroundColor: "var(--r-bg)" }}>
+
+      <TopBar
+        activeTab={activeTab}
+        onTabChange={(t) => { setActiveTab(t); }}
+        theme={theme}
+        onThemeToggle={() => setTheme(t => t === "dark" ? "light" : "dark")}
+      />
+
       <div className="flex flex-1 min-h-0">
         <SideRail
           activeTab={activeTab}
           messages={messages}
           signals={signals}
+          labView={labView}
+          schoolView={schoolView}
+          creationView={creationView}
+          onLabView={setLabView}
+          onSchoolView={setSchoolView}
+          onCreationView={setCreationView}
+          onNewNote={addNote}
           onClearTab={handleClearTab}
         />
+
         <MainSurface
           activeTab={activeTab}
           messages={messages[activeTab]}
@@ -213,9 +326,19 @@ export default function RuberraShell() {
           draft={drafts[activeTab]}
           onDraftChange={handleDraftChange}
           onSend={handleSend}
+          labView={labView}
+          schoolView={schoolView}
+          creationView={creationView}
           onCancel={handleCancel}
         />
       </div>
+
+      {/* Floating note layer */}
+      <FloatingNoteSystem
+        notes={notes}
+        onChange={updateNote}
+        onRemove={removeNote}
+      />
     </div>
   );
 }
