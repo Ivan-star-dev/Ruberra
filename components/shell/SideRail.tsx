@@ -1,51 +1,123 @@
 "use client";
 
 import { type Tab } from "./TabSwitcher";
+import { type Message } from "./types";
 
 interface SideRailProps {
   activeTab: Tab;
+  messages: Message[];
 }
 
-export default function SideRail({ activeTab }: SideRailProps) {
+interface SectionProps {
+  label: string;
+  children: React.ReactNode;
+}
+
+function Section({ label, children }: SectionProps) {
   return (
-    <aside className="w-60 shrink-0 border-r border-ruberra-border bg-ruberra-rail flex flex-col gap-6 px-4 py-5">
+    <section>
+      <p className="text-ruberra-subtext/60 text-[10px] uppercase tracking-widest mb-2.5 select-none font-medium">
+        {label}
+      </p>
+      {children}
+    </section>
+  );
+}
+
+function EmptySlot({ label }: { label: string }) {
+  return (
+    <div className="h-7 rounded bg-ruberra-border/25 flex items-center px-3">
+      <span className="text-ruberra-subtext/30 text-xs truncate">{label}</span>
+    </div>
+  );
+}
+
+const SIGNALS = [
+  { id: "s1", label: "Idle", active: true, color: "bg-ruberra-pulse" },
+  { id: "s2", label: "No active run", active: false, color: "bg-ruberra-subtext/40" },
+];
+
+export default function SideRail({ activeTab, messages }: SideRailProps) {
+  const tabMessages = messages.filter((m) => m.tab === activeTab && m.role === "user");
+
+  const historyItems = tabMessages
+    .slice()
+    .reverse()
+    .slice(0, 6);
+
+  const artifactMessages = messages.filter((m) => m.tab === activeTab && m.role === "assistant");
+  const artifactItems = artifactMessages
+    .slice()
+    .reverse()
+    .slice(0, 4);
+
+  return (
+    <aside className="w-56 shrink-0 border-r border-ruberra-border bg-ruberra-rail flex flex-col gap-5 px-4 py-5 overflow-y-auto">
+
       {/* Artifacts */}
-      <section>
-        <p className="text-ruberra-subtext text-xs uppercase tracking-widest mb-3 select-none">
-          Artifacts
-        </p>
-        <div className="space-y-1">
-          <div className="h-7 rounded bg-ruberra-border/40 w-3/4 animate-pulse" />
-          <div className="h-7 rounded bg-ruberra-border/40 w-full animate-pulse" />
-          <div className="h-7 rounded bg-ruberra-border/40 w-2/3 animate-pulse" />
-        </div>
-      </section>
+      <Section label="Artifacts">
+        {artifactItems.length === 0 ? (
+          <>
+            <EmptySlot label="No artifacts yet" />
+            <EmptySlot label="—" />
+          </>
+        ) : (
+          <div className="space-y-1">
+            {artifactItems.map((m) => (
+              <div
+                key={m.id}
+                className="h-7 rounded bg-ruberra-border/30 flex items-center px-3 group cursor-default"
+                title={m.content}
+              >
+                <span className="text-ruberra-subtext/70 text-xs truncate group-hover:text-ruberra-text/80 transition-colors">
+                  {m.content.slice(0, 32)}{m.content.length > 32 ? "…" : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
 
       {/* History */}
-      <section>
-        <p className="text-ruberra-subtext text-xs uppercase tracking-widest mb-3 select-none">
-          History
-        </p>
-        <div className="space-y-1">
-          <div className="h-7 rounded bg-ruberra-border/40 w-full animate-pulse" />
-          <div className="h-7 rounded bg-ruberra-border/40 w-4/5 animate-pulse" />
-        </div>
-      </section>
+      <Section label="History">
+        {historyItems.length === 0 ? (
+          <>
+            <EmptySlot label="No history yet" />
+            <EmptySlot label="—" />
+          </>
+        ) : (
+          <div className="space-y-1">
+            {historyItems.map((m) => (
+              <div
+                key={m.id}
+                className="h-7 rounded bg-ruberra-border/30 flex items-center px-3 group cursor-default"
+                title={m.content}
+              >
+                <span className="text-ruberra-subtext/70 text-xs truncate group-hover:text-ruberra-text/80 transition-colors">
+                  {m.content.slice(0, 32)}{m.content.length > 32 ? "…" : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
 
-      {/* Tools */}
-      <section>
-        <p className="text-ruberra-subtext text-xs uppercase tracking-widest mb-3 select-none">
-          Tools
-        </p>
-        <div className="space-y-1">
-          <div className="h-7 rounded bg-ruberra-border/40 w-2/3 animate-pulse" />
+      {/* Signals */}
+      <Section label="Signals">
+        <div className="space-y-1.5">
+          {SIGNALS.map((s) => (
+            <div key={s.id} className="flex items-center gap-2.5">
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.color}`} />
+              <span className="text-ruberra-subtext/60 text-xs">{s.label}</span>
+            </div>
+          ))}
         </div>
-      </section>
+      </Section>
 
-      {/* Active mode badge */}
-      <div className="mt-auto">
-        <span className="text-ruberra-subtext text-xs capitalize tracking-wide">
-          Mode: <span className="text-ruberra-accent">{activeTab}</span>
+      {/* Mode indicator */}
+      <div className="mt-auto pt-2 border-t border-ruberra-border/40">
+        <span className="text-ruberra-subtext/50 text-[10px] capitalize tracking-widest select-none">
+          MODE · <span className="text-ruberra-accent/80">{activeTab.toUpperCase()}</span>
         </span>
       </div>
     </aside>
