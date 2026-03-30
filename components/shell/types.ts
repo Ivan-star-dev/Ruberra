@@ -10,14 +10,14 @@ export interface Message {
 
 export type SignalStatus = "idle" | "streaming" | "completed" | "error";
 
-/* Chamber-specific views wired in the left rail */
-export type LabView      = "chat" | "analysis" | "code" | "archive";
+/* Chamber-specific views */
+export type LabView      = "chat" | "research" | "code" | "analysis" | "summary" | "archive";
 export type SchoolView   = "chat" | "library"  | "archive";
 export type CreationView = "chat" | "terminal" | "archive";
 
 export type ChamberView = LabView | SchoolView | CreationView;
 
-/* Floating note pinned to screen */
+/* Floating note */
 export interface FloatingNote {
   id:        string;
   content:   string;
@@ -30,3 +30,11 @@ export interface FloatingNote {
 
 /* App-wide theme */
 export type Theme = "dark" | "light";
+
+/* Session stats passed to the status bar */
+export interface SessionStats {
+  latencyMs: number;
+  model:     string;
+  context:   string;
+  date:      string;
+}

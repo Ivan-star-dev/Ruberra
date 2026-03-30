@@ -14,6 +14,7 @@ import {
   type CreationView,
   type FloatingNote,
   type Theme,
+  type SessionStats,
 } from "./types";
 
 type TabMessages = Record<Tab, Message[]>;
@@ -26,28 +27,36 @@ function emptyRecord<T>(value: T): Record<Tab, T> {
   return Object.fromEntries(TABS.map((t) => [t, value])) as Record<Tab, T>;
 }
 
+function fmtDate(): string {
+  return new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 export default function RuberraShell() {
   const [activeTab,    setActiveTab]    = useState<Tab>("lab");
   const [messages,     setMessages]     = useState<TabMessages>(emptyRecord<Message[]>([]));
   const [loading,      setLoading]      = useState<TabLoading>(emptyRecord(false));
   const [signals,      setSignals]      = useState<TabSignals>(emptyRecord<SignalStatus>("idle"));
 
-  /* Chamber view state */
   const [labView,      setLabView]      = useState<LabView>("chat");
   const [schoolView,   setSchoolView]   = useState<SchoolView>("chat");
   const [creationView, setCreationView] = useState<CreationView>("chat");
 
-  /* Floating notes */
-  const [notes, setNotes] = useState<FloatingNote[]>([]);
+  const [notes, setNotes]   = useState<FloatingNote[]>([]);
+  const [theme, setTheme]   = useState<Theme>("dark");
 
-  /* Theme */
-  const [theme, setTheme] = useState<Theme>("dark");
+  /* Session stats — latency measured from send to first byte */
+  const [stats, setStats] = useState<SessionStats>({
+    latencyMs: 0,
+    model:     "RUBERRA-7B-r1",
+    context:   "128k",
+    date:      fmtDate(),
+  });
 
-  /* Apply theme to document */
   useEffect(() => {
-    if (theme === "light") {
-      document.documentElement.setAttribute("data-theme", "light");
-    } else {
+    document.documentElement.setAttribute(
+      "data-theme", theme === "light" ? "light" : ""
+    );
+    if (theme === "dark") {
       document.documentElement.removeAttribute("data-theme");
     }
   }, [theme]);
@@ -55,16 +64,17 @@ export default function RuberraShell() {
   const messagesRef = useRef<TabMessages>(messages);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
-  /* ── Stream handler ────────────────────────────────────── */
+  /* ── Stream handler ─────────────────────────────────────── */
   const handleSend = useCallback(async (text: string) => {
-    const tab = activeTab;
+    const tab   = activeTab;
+    const t0    = Date.now();
 
     const userMsg: Message = {
       id:        crypto.randomUUID(),
       role:      "user",
       content:   text,
       tab,
-      timestamp: Date.now(),
+      timestamp: t0,
     };
 
     setMessages((prev) => ({ ...prev, [tab]: [...prev[tab], userMsg] }));
@@ -72,7 +82,6 @@ export default function RuberraShell() {
     setSignals((prev)  => ({ ...prev, [tab]: "streaming" }));
 
     const assistantId = crypto.randomUUID();
-
     setMessages((prev) => ({
       ...prev,
       [tab]: [
@@ -82,17 +91,22 @@ export default function RuberraShell() {
     }));
 
     try {
-      const history = messagesRef.current[tab]
-        .filter((m) => m.id !== assistantId)
-        .map(({ role, content }) => ({ role, content }));
-
       const res = await fetch("/api/chat", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ tab, messages: history }),
+        body:    JSON.stringify({
+          tab,
+          messages: messagesRef.current[tab]
+            .filter(m => m.id !== assistantId)
+            .map(({ role, content }) => ({ role, content })),
+        }),
       });
 
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+
+      /* Record first-byte latency */
+      const firstByteMs = Date.now() - t0;
+      setStats(s => ({ ...s, latencyMs: firstByteMs }));
 
       const reader  = res.body.getReader();
       const decoder = new TextDecoder();
@@ -137,9 +151,21 @@ export default function RuberraShell() {
     }
   }, [activeTab]);
 
-  /* ── Notes handlers ────────────────────────────────────── */
+  /* ── Session reset ──────────────────────────────────────── */
+  function handleNewSession() {
+    const tab = activeTab;
+    setMessages((prev) => ({ ...prev, [tab]: [] }));
+    setSignals((prev)  => ({ ...prev, [tab]: "idle" }));
+    setStats(s => ({ ...s, latencyMs: 0, date: fmtDate() }));
+    /* Reset to default view for tab */
+    if (tab === "lab")      setLabView("chat");
+    if (tab === "school")   setSchoolView("chat");
+    if (tab === "creation") setCreationView("chat");
+  }
+
+  /* ── Notes ──────────────────────────────────────────────── */
   function addNote() {
-    const note: FloatingNote = {
+    setNotes((prev) => [...prev, {
       id:        crypto.randomUUID(),
       content:   "",
       tab:       activeTab,
@@ -147,8 +173,7 @@ export default function RuberraShell() {
       x:         Math.max(80, window.innerWidth / 2 - 128 + Math.random() * 60),
       y:         Math.max(80, 120 + Math.random() * 80),
       timestamp: Date.now(),
-    };
-    setNotes((prev) => [...prev, note]);
+    }]);
   }
 
   function updateNote(id: string, updates: Partial<FloatingNote>) {
@@ -159,14 +184,14 @@ export default function RuberraShell() {
     setNotes((prev) => prev.filter((n) => n.id !== id || n.pinned));
   }
 
-  /* ── Render ─────────────────────────────────────────────── */
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden"
-      style={{ backgroundColor: "var(--r-bg)" }}>
-
+    <div
+      className="h-screen w-screen flex flex-col overflow-hidden"
+      style={{ backgroundColor: "var(--r-bg)" }}
+    >
       <TopBar
         activeTab={activeTab}
-        onTabChange={(t) => { setActiveTab(t); }}
+        onTabChange={setActiveTab}
         theme={theme}
         onThemeToggle={() => setTheme(t => t === "dark" ? "light" : "dark")}
       />
@@ -183,6 +208,7 @@ export default function RuberraShell() {
           onSchoolView={setSchoolView}
           onCreationView={setCreationView}
           onNewNote={addNote}
+          onNewSession={handleNewSession}
         />
 
         <MainSurface
@@ -193,10 +219,10 @@ export default function RuberraShell() {
           labView={labView}
           schoolView={schoolView}
           creationView={creationView}
+          stats={stats}
         />
       </div>
 
-      {/* Floating note layer */}
       <FloatingNoteSystem
         notes={notes}
         onChange={updateNote}

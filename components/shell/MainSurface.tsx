@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { type Tab, type Message, type LabView, type SchoolView, type CreationView } from "./types";
+import {
+  type Tab,
+  type Message,
+  type LabView,
+  type SchoolView,
+  type CreationView,
+  type SessionStats,
+} from "./types";
 import LabAnalysisPane  from "../lab/LabAnalysisPane";
 import LabCodeOrgan     from "../lab/LabCodeOrgan";
 import LabArchive       from "../lab/LabArchive";
@@ -18,19 +25,21 @@ interface MainSurfaceProps {
   labView:      LabView;
   schoolView:   SchoolView;
   creationView: CreationView;
+  stats:        SessionStats;
 }
 
 /* ── View router ────────────────────────────────────────────── */
 
 export default function MainSurface({
   activeTab, messages, isLoading, onSend,
-  labView, schoolView, creationView,
+  labView, schoolView, creationView, stats,
 }: MainSurfaceProps) {
 
   if (activeTab === "lab") {
     if (labView === "analysis") return <LabAnalysisPane messages={messages} />;
     if (labView === "code")     return <LabCodeOrgan messages={messages} isLoading={isLoading} onSend={onSend} />;
     if (labView === "archive")  return <LabArchive messages={messages} />;
+    /* research / summary / chat all use the editorial chat surface */
   }
 
   if (activeTab === "school") {
@@ -49,34 +58,41 @@ export default function MainSurface({
       messages={messages}
       isLoading={isLoading}
       onSend={onSend}
+      stats={stats}
     />
   );
 }
 
-/* ── Shared chat surface ────────────────────────────────────── */
+/* ── Chamber meta ───────────────────────────────────────────── */
 
-const CHAMBER_META: Record<Tab, {
-  title:       string;
-  hint:        string;
-  placeholder: string;
-}> = {
-  lab:      { title: "Lab",      hint: "Explore, experiment, and reason deeply.",    placeholder: "Query the Lab…"  },
-  school:   { title: "School",   hint: "Learn, study, and build genuine mastery.",   placeholder: "Ask School…"     },
-  creation: { title: "Creation", hint: "Draft, build, and bring things into being.", placeholder: "Directive…"      },
+const PLACEHOLDER: Record<Tab, string> = {
+  lab:      "Ask anything…",
+  school:   "Ask anything…",
+  creation: "Describe what to build…",
 };
 
+const HINT: Record<Tab, string> = {
+  lab:      "Explore, experiment, and reason deeply.",
+  school:   "Learn, study, and build genuine mastery.",
+  creation: "Draft, build, and bring things into being.",
+};
+
+/* ── Editorial chat surface ──────────────────────────────────── */
+
 function ChatSurface({
-  activeTab, messages, isLoading, onSend,
+  activeTab, messages, isLoading, onSend, stats,
 }: {
   activeTab: Tab;
   messages:  Message[];
   isLoading: boolean;
   onSend:    (text: string) => void;
+  stats:     SessionStats;
 }) {
-  const [draft, setDraft]  = useState("");
-  const threadRef          = useRef<HTMLDivElement>(null);
-  const textareaRef        = useRef<HTMLTextAreaElement>(null);
-  const { title, hint, placeholder } = CHAMBER_META[activeTab];
+  const [draft, setDraft]      = useState("");
+  const threadRef              = useRef<HTMLDivElement>(null);
+  const textareaRef            = useRef<HTMLTextAreaElement>(null);
+  const placeholder            = PLACEHOLDER[activeTab];
+  const isEmpty                = messages.length === 0;
 
   const isStreaming =
     isLoading &&
@@ -93,7 +109,7 @@ function ChatSurface({
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
   }, [draft]);
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -107,76 +123,295 @@ function ChatSurface({
     onSend(text);
   }
 
-  const isEmpty = messages.length === 0;
-
   return (
-    <main className="flex-1 flex flex-col min-h-0" style={{ backgroundColor: "var(--r-bg)" }}>
-
-      {/* Thread area */}
+    <main
+      className="flex-1 flex flex-col min-h-0"
+      style={{ backgroundColor: "var(--r-bg)" }}
+    >
+      {/* ── Thread ──────────────────────────────────────────── */}
       <div
         ref={threadRef}
         className="flex-1 overflow-y-auto scroll-smooth"
-        style={{ padding: "24px 28px" }}
+        style={{ padding: "32px 40px 16px" }}
       >
         {isEmpty ? (
-          <EmptyState tab={activeTab} title={title} hint={hint} />
+          <EmptyState tab={activeTab} />
         ) : (
-          <div className="space-y-3 max-w-2xl mx-auto">
-            {messages.map((msg) => (
-              <MessageBubble key={msg.id} msg={msg} tab={activeTab} />
+          <div style={{ maxWidth: "640px" }}>
+            {messages.map((msg, i) => (
+              <EditorialMessage
+                key={msg.id}
+                msg={msg}
+                isLast={i === messages.length - 1}
+                isStreaming={isLoading && i === messages.length - 1 && msg.role === "assistant"}
+              />
             ))}
           </div>
         )}
       </div>
 
-      {/* Status bar — single line, minimal */}
-      <div
-        className="shrink-0 transition-all duration-200 overflow-hidden"
-        style={{
-          height:     isLoading ? "24px" : "0px",
-          opacity:    isLoading ? 1 : 0,
-          padding:    isLoading ? "0 28px" : "0 28px",
-        }}
-        aria-live="polite"
-      >
-        <div className="flex items-center gap-2 h-full">
-          <span
-            className="inline-block w-1 h-1 rounded-full animate-pulse"
-            style={{ backgroundColor: "var(--r-accent)" }}
+      {/* ── Input area ──────────────────────────────────────── */}
+      <div style={{ padding: "0 40px", flexShrink: 0 }}>
+        {/* Bottom-border only — no surface box */}
+        <div
+          className="flex items-end gap-4 transition-colors duration-150"
+          style={{
+            borderBottom: `1px solid ${isLoading ? "var(--r-border-soft)" : "var(--r-border)"}`,
+            paddingBottom: "12px",
+          }}
+        >
+          <textarea
+            ref={textareaRef}
+            rows={1}
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isLoading}
+            placeholder={placeholder}
+            className="flex-1 bg-transparent outline-none resize-none leading-relaxed disabled:opacity-40"
+            style={{
+              color:     "var(--r-text)",
+              fontSize:  "14px",
+              minHeight: "24px",
+              maxHeight: "200px",
+            }}
           />
+          <button
+            onClick={submit}
+            disabled={!draft.trim() || isLoading}
+            className="shrink-0 transition-colors duration-150 disabled:opacity-20 disabled:cursor-not-allowed"
+            style={{ color: "var(--r-subtext)", marginBottom: "2px" }}
+            aria-label="Send"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M13.5 8L2.5 2.5l2.5 5.5-2.5 5.5L13.5 8z"
+                stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Hint + disclaimer row */}
+        <div
+          className="flex items-center justify-between select-none"
+          style={{ paddingTop: "8px", paddingBottom: "10px" }}
+        >
           <span
             className="font-mono"
-            style={{ fontSize: "10px", color: "var(--r-subtext)" }}
+            style={{ fontSize: "10px", color: "var(--r-dim)" }}
           >
-            {isStreaming ? "streaming" : "thinking"}
+            SHIFT+ENTER for newline
+          </span>
+          <span
+            style={{ fontSize: "10px", color: "var(--r-dim)" }}
+          >
+            Responses may be incomplete. Always verify critical information.
           </span>
         </div>
       </div>
 
-      {/* Input bar */}
-      <div className="shrink-0" style={{ padding: "0 24px 20px" }}>
-        <InputBar
-          value={draft}
-          onChange={setDraft}
-          onKeyDown={handleKeyDown}
-          onSubmit={submit}
-          disabled={isLoading}
-          placeholder={placeholder}
-          submitLabel="Send"
-        />
-        <p
-          className="mt-1.5 select-none"
-          style={{ fontSize: "10px", color: "var(--r-dim)", paddingLeft: "1px" }}
-        >
-          Enter to send · Shift+Enter for newline
-        </p>
-      </div>
-
+      {/* ── Status bar ──────────────────────────────────────── */}
+      <StatusBar stats={stats} isStreaming={isStreaming} isLoading={isLoading} />
     </main>
   );
 }
 
-/* ── Shared InputBar — used by ChatSurface (Creation has its own) ── */
+/* ── Editorial message layout ───────────────────────────────── */
+
+function EditorialMessage({
+  msg,
+  isLast,
+  isStreaming,
+}: {
+  msg:         Message;
+  isLast:      boolean;
+  isStreaming:  boolean;
+}) {
+  const isUser = msg.role === "user";
+
+  /* Format: HH:MM */
+  const time = new Date(msg.timestamp).toLocaleTimeString([], {
+    hour:   "2-digit",
+    minute: "2-digit",
+  });
+
+  if (isUser) {
+    return (
+      <div style={{ marginBottom: "28px" }}>
+        <p
+          style={{
+            fontSize:   "14px",
+            lineHeight: "1.65",
+            color:      "var(--r-text)",
+          }}
+        >
+          {msg.content}
+        </p>
+      </div>
+    );
+  }
+
+  /* Assistant — sender label above, full-width prose */
+  return (
+    <div style={{ marginBottom: "32px" }}>
+      {/* Sender label */}
+      <div
+        className="flex items-center gap-2 select-none"
+        style={{ marginBottom: "10px" }}
+      >
+        <span
+          className="font-semibold"
+          style={{
+            fontSize:      "11px",
+            color:         "var(--r-text)",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          RUBERRA
+        </span>
+        <span
+          className="font-mono"
+          style={{ fontSize: "10px", color: "var(--r-dim)" }}
+        >
+          {time}
+        </span>
+      </div>
+
+      {/* Response body */}
+      <div
+        style={{
+          fontSize:   "14px",
+          lineHeight: "1.75",
+          color:      "var(--r-text)",
+        }}
+      >
+        {msg.content ? (
+          /* Render paragraphs separated by double newline */
+          msg.content.split(/\n\n+/).map((para, i) => (
+            <p key={i} style={{ marginBottom: "12px" }}>{para.trim()}</p>
+          ))
+        ) : (
+          isStreaming ? <ThinkingIndicator /> : null
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ThinkingIndicator() {
+  return (
+    <span
+      className="inline-block w-2 h-4 animate-pulse"
+      style={{
+        backgroundColor: "var(--r-subtext)",
+        opacity:         0.5,
+      }}
+    />
+  );
+}
+
+/* ── Status bar ─────────────────────────────────────────────── */
+
+function StatusBar({
+  stats,
+  isStreaming,
+  isLoading,
+}: {
+  stats:       SessionStats;
+  isStreaming:  boolean;
+  isLoading:    boolean;
+}) {
+  const latency = stats.latencyMs > 0
+    ? `${stats.latencyMs}ms`
+    : "—";
+
+  return (
+    <div
+      className="shrink-0 border-t flex items-center justify-between select-none font-mono"
+      style={{
+        height:          "28px",
+        borderColor:     "var(--r-border)",
+        backgroundColor: "var(--r-surface)",
+        paddingLeft:     "40px",
+        paddingRight:    "40px",
+        fontSize:        "9px",
+        color:           "var(--r-dim)",
+        letterSpacing:   "0.05em",
+      }}
+    >
+      {/* Left — brand + status */}
+      <div className="flex items-center gap-3">
+        <span style={{ color: "var(--r-subtext)" }}>RUBERRA CORE</span>
+        <span style={{ color: "var(--r-border)" }}>·</span>
+        <span
+          className="flex items-center gap-1.5"
+          style={{ color: isLoading ? "var(--r-accent)" : "var(--r-ok)" }}
+        >
+          <span
+            className={["w-1 h-1 rounded-full", isLoading ? "animate-pulse" : ""].join(" ")}
+            style={{ backgroundColor: "currentColor" }}
+          />
+          {isLoading ? (isStreaming ? "STREAMING" : "THINKING") : "CONNECTED"}
+        </span>
+      </div>
+
+      {/* Right — model / context / latency / date */}
+      <div className="flex items-center gap-3">
+        <span>Model: {stats.model}</span>
+        <span style={{ color: "var(--r-border)" }}>·</span>
+        <span>Context: {stats.context}</span>
+        <span style={{ color: "var(--r-border)" }}>·</span>
+        <span>Latency: {latency}</span>
+        <span style={{ color: "var(--r-border)" }}>·</span>
+        <span>Session · {stats.date}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ── Empty state ────────────────────────────────────────────── */
+
+const BOOT_LINES: Record<Tab, string[]> = {
+  lab:      ["kernel ready", "context loaded", "reasoning warm"],
+  school:   ["knowledge index ready", "curriculum loaded", "guide warm"],
+  creation: ["forge kernel ready", "output encoder loaded", "builder warm"],
+};
+
+function EmptyState({ tab }: { tab: Tab }) {
+  return (
+    <div
+      className="h-full flex flex-col justify-end select-none"
+      style={{ paddingBottom: "16px", minHeight: "120px" }}
+    >
+      <div
+        className="font-mono flex flex-col"
+        style={{ gap: "3px" }}
+      >
+        {BOOT_LINES[tab].map(l => (
+          <span
+            key={l}
+            className="flex items-center gap-2"
+            style={{ fontSize: "10px", color: "var(--r-dim)" }}
+          >
+            <span style={{ color: "var(--r-ok)", opacity: 0.5 }}>›</span>
+            {l}
+          </span>
+        ))}
+      </div>
+      <p
+        style={{
+          fontSize:   "13px",
+          color:      "var(--r-subtext)",
+          marginTop:  "12px",
+          lineHeight: "1.5",
+        }}
+      >
+        {HINT[tab]}
+      </p>
+    </div>
+  );
+}
+
+/* ── Shared InputBar export (used by other surfaces) ─────────── */
 
 export function InputBar({
   value,
@@ -235,135 +470,5 @@ export function InputBar({
         </svg>
       </button>
     </div>
-  );
-}
-
-/* ── Empty state ─────────────────────────────────────────────── */
-
-function EmptyState({ tab, title, hint }: { tab: Tab; title: string; hint: string }) {
-  return (
-    <div className="h-full flex flex-col items-center justify-center select-none"
-      style={{ gap: "10px", paddingBottom: "40px" }}>
-      <ChamberGlyph tab={tab} />
-      <div className="text-center" style={{ marginTop: "4px" }}>
-        <h1
-          className="font-medium tracking-tight"
-          style={{ fontSize: "15px", color: "var(--r-text)", letterSpacing: "-0.01em" }}
-        >
-          {title}
-        </h1>
-        <p
-          className="mt-1"
-          style={{ fontSize: "12px", color: "var(--r-subtext)", maxWidth: "240px" }}
-        >
-          {hint}
-        </p>
-      </div>
-      <BootLines tab={tab} />
-    </div>
-  );
-}
-
-const BOOT_LINES: Record<Tab, string[]> = {
-  lab:      ["kernel ready", "context loaded", "reasoning warm"],
-  school:   ["knowledge index ready", "curriculum loaded", "guide warm"],
-  creation: ["forge kernel ready", "output encoder loaded", "builder warm"],
-};
-
-function BootLines({ tab }: { tab: Tab }) {
-  return (
-    <div
-      className="font-mono flex flex-col select-none"
-      style={{ gap: "3px", marginTop: "8px" }}
-    >
-      {BOOT_LINES[tab].map(l => (
-        <span
-          key={l}
-          className="flex items-center gap-2"
-          style={{ fontSize: "10px", color: "var(--r-dim)" }}
-        >
-          <span style={{ color: "var(--r-ok)", opacity: 0.6 }}>›</span>
-          {l}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-/* ── Message bubble ─────────────────────────────────────────── */
-
-/* Per-chamber user bubble tint — all mineral, no rt-* tokens */
-const USER_BG: Record<Tab, string> = {
-  lab:      "var(--r-accent-dim)",
-  school:   "var(--r-elevated)",
-  creation: "var(--r-elevated)",
-};
-
-function MessageBubble({ msg, tab }: { msg: Message; tab: Tab }) {
-  const isUser = msg.role === "user";
-  return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className="max-w-[70%]"
-        style={{
-          backgroundColor: isUser ? USER_BG[tab]      : "var(--r-surface)",
-          border:          isUser ? "none"             : "1px solid var(--r-border)",
-          color:           "var(--r-text)",
-          fontSize:        "13px",
-          lineHeight:      "1.6",
-          padding:         "8px 14px",
-        }}
-      >
-        {msg.content || <ThinkingDots />}
-      </div>
-    </div>
-  );
-}
-
-function ThinkingDots() {
-  return (
-    <span className="inline-flex items-center gap-1" style={{ height: "16px" }}>
-      {[0, 1, 2].map(i => (
-        <span
-          key={i}
-          className="w-1 h-1 rounded-full animate-bounce"
-          style={{
-            backgroundColor: "var(--r-muted)",
-            animationDelay:  `${i * 120}ms`,
-          }}
-        />
-      ))}
-    </span>
-  );
-}
-
-/* ── Chamber glyphs ─────────────────────────────────────────── */
-
-function ChamberGlyph({ tab }: { tab: Tab }) {
-  if (tab === "lab") return (
-    <svg width="22" height="22" viewBox="0 0 28 28" fill="none"
-      style={{ color: "var(--r-subtext)", opacity: 0.6 }}>
-      <circle cx="14" cy="14" r="5" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M14 3v3M14 22v3M3 14h3M22 14h3"
-        stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M6 6l2 2M20 20l2 2M22 6l-2 2M8 20l-2 2"
-        stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-    </svg>
-  );
-  if (tab === "school") return (
-    <svg width="22" height="22" viewBox="0 0 28 28" fill="none"
-      style={{ color: "var(--r-subtext)", opacity: 0.6 }}>
-      <rect x="4" y="7" width="20" height="15" rx="1" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M4 11h20M10 11v11" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-      <path d="M14 5l-2 2h4l-2-2z" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
-    </svg>
-  );
-  return (
-    <svg width="22" height="22" viewBox="0 0 28 28" fill="none"
-      style={{ color: "var(--r-subtext)", opacity: 0.6 }}>
-      <path d="M5 22l4-11 4 7 3-5 5 9" stroke="currentColor" strokeWidth="1.2"
-        strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="22" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.2" />
-    </svg>
   );
 }

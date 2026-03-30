@@ -20,6 +20,7 @@ interface SideRailProps {
   onSchoolView:   (v: SchoolView) => void;
   onCreationView: (v: CreationView) => void;
   onNewNote:      () => void;
+  onNewSession:   () => void;
 }
 
 /* ── Primitives ─────────────────────────────────────────────── */
@@ -27,47 +28,61 @@ interface SideRailProps {
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p
-      className="text-[9px] uppercase tracking-widest select-none mb-1.5"
-      style={{ color: "var(--r-dim)", fontWeight: 500, letterSpacing: "0.1em" }}
+      className="select-none font-mono"
+      style={{
+        fontSize:      "9px",
+        letterSpacing: "0.12em",
+        color:         "var(--r-dim)",
+        marginBottom:  "6px",
+        textTransform: "uppercase",
+      }}
     >
       {children}
     </p>
   );
 }
 
-function NavItem({
+/* Plain-text nav item — no icon, no background box. Active = full text color.
+   This matches the reference design exactly. */
+function ContextItem({
   label,
-  icon,
   active,
   onClick,
+  muted = false,
 }: {
-  label:   string;
-  icon:    React.ReactNode;
-  active:  boolean;
-  onClick: () => void;
+  label:    string;
+  active:   boolean;
+  onClick:  () => void;
+  muted?:   boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left transition-colors duration-150"
+      className="w-full text-left transition-colors duration-100 select-none"
       style={{
-        backgroundColor: active ? "var(--r-border)" : "transparent",
-        color:           active ? "var(--r-text)"   : "var(--r-subtext)",
-        fontSize:        "11px",
+        fontSize:    "12px",
+        lineHeight:  "1",
+        padding:     "5px 0",
+        color:       active ? "var(--r-text)"
+                   : muted  ? "var(--r-dim)"
+                   : "var(--r-subtext)",
+        fontWeight:  active ? 500 : 400,
       }}
     >
-      <span
-        className="w-3.5 h-3.5 shrink-0 flex items-center justify-center"
-        style={{ color: active ? "var(--r-accent)" : "var(--r-dim)" }}
-      >
-        {icon}
-      </span>
-      <span className="truncate leading-none">{label}</span>
+      {label}
     </button>
   );
 }
 
-/* Inline status indicator without broken CSS animation property */
+function Divider() {
+  return (
+    <div
+      className="shrink-0"
+      style={{ height: "1px", backgroundColor: "var(--r-border-soft)", margin: "8px 0" }}
+    />
+  );
+}
+
 function StatusIndicator({ status }: { status: SignalStatus }) {
   const isActive = status === "streaming";
   return (
@@ -82,162 +97,179 @@ function StatusIndicator({ status }: { status: SignalStatus }) {
             "var(--r-dim)",
         }}
       />
-      <span style={{ fontSize: "10px", color: "var(--r-subtext)" }} className="capitalize">
+      <span className="font-mono capitalize" style={{ fontSize: "9px", color: "var(--r-subtext)" }}>
         {status}
       </span>
     </div>
   );
 }
 
-function MetaRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between mt-1">
-      <span style={{ fontSize: "9px", color: "var(--r-dim)" }}>{label}</span>
-      <span className="font-mono" style={{ fontSize: "9px", color: "var(--r-subtext)" }}>{value}</span>
-    </div>
-  );
-}
-
-function HistoryList({ messages }: { messages: Message[] }) {
-  const items = messages
-    .filter(m => m.role === "user")
-    .slice()
-    .reverse()
-    .slice(0, 5);
-
-  if (items.length === 0) {
-    return (
-      <p style={{ fontSize: "10px", color: "var(--r-dim)" }} className="px-1">
-        No queries yet
-      </p>
-    );
-  }
-
-  return (
-    <ul className="space-y-px">
-      {items.map(m => (
-        <li
-          key={m.id}
-          className="px-1 py-1 truncate cursor-default"
-          style={{ fontSize: "10px", color: "var(--r-subtext)", lineHeight: "1.4" }}
-          title={m.content}
-        >
-          {m.content.slice(0, 36)}{m.content.length > 36 ? "…" : ""}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 /* ── Lab rail ───────────────────────────────────────────────── */
 
 function LabRail({
-  activeView, onView, messages, signal,
+  activeView, onView, messages, signal, onNewSession,
 }: {
-  activeView: LabView;
-  onView:     (v: LabView) => void;
-  messages:   Message[];
-  signal:     SignalStatus;
+  activeView:   LabView;
+  onView:       (v: LabView) => void;
+  messages:     Message[];
+  signal:       SignalStatus;
+  onNewSession: () => void;
 }) {
-  const exchanges = messages.filter(m => m.role === "assistant" && m.content.length > 0).length;
+  const hasMessages = messages.length > 0;
 
   return (
-    <>
-      <section className="px-3 pt-3 pb-3 border-b" style={{ borderColor: "var(--r-border-soft)" }}>
-        <SectionLabel>Views</SectionLabel>
-        <div className="space-y-px">
-          <NavItem label="Chat"     active={activeView === "chat"}     onClick={() => onView("chat")}     icon={<IconChat />} />
-          <NavItem label="Analysis" active={activeView === "analysis"} onClick={() => onView("analysis")} icon={<IconAnalysis />} />
-          <NavItem label="Code"     active={activeView === "code"}     onClick={() => onView("code")}     icon={<IconCode />} />
-          <NavItem label="Archive"  active={activeView === "archive"}  onClick={() => onView("archive")}  icon={<IconArchive />} />
+    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
+
+      {/* CONTEXT section */}
+      <section style={{ padding: "14px 16px 10px" }}>
+        <SectionLabel>Context</SectionLabel>
+        <div>
+          <ContextItem label="General"  active={activeView === "chat"}     onClick={() => onView("chat")} />
+          <ContextItem label="Research" active={activeView === "research"}  onClick={() => onView("research")} />
+          <ContextItem label="Code"     active={activeView === "code"}      onClick={() => onView("code")} />
+          <ContextItem label="Analysis" active={activeView === "analysis"}  onClick={() => onView("analysis")} />
+          <ContextItem label="Summary"  active={activeView === "summary"}   onClick={() => onView("summary")} />
         </div>
+
+        <Divider />
+
+        <ContextItem
+          label="New session"
+          active={false}
+          muted={!hasMessages}
+          onClick={onNewSession}
+        />
       </section>
 
-      <section className="px-3 pt-3 pb-3 border-b flex-1 overflow-y-auto" style={{ borderColor: "var(--r-border-soft)" }}>
-        <SectionLabel>Recent</SectionLabel>
-        <HistoryList messages={messages} />
-      </section>
+      {/* Recent queries */}
+      {hasMessages && (
+        <>
+          <Divider />
+          <section style={{ padding: "4px 16px 10px", flex: "1", overflow: "hidden" }}>
+            <SectionLabel>Recent</SectionLabel>
+            <ul>
+              {messages
+                .filter(m => m.role === "user")
+                .slice()
+                .reverse()
+                .slice(0, 6)
+                .map(m => (
+                  <li
+                    key={m.id}
+                    className="truncate"
+                    style={{
+                      fontSize:   "11px",
+                      color:      "var(--r-subtext)",
+                      lineHeight: "1.5",
+                      padding:    "3px 0",
+                    }}
+                    title={m.content}
+                  >
+                    {m.content.slice(0, 40)}{m.content.length > 40 ? "…" : ""}
+                  </li>
+                ))}
+            </ul>
+          </section>
+        </>
+      )}
 
-      <section className="px-3 pt-3 pb-3">
-        <SectionLabel>Kernel</SectionLabel>
+      {/* Kernel status — bottom */}
+      <section style={{ padding: "8px 16px 12px", marginTop: "auto" }}>
         <StatusIndicator status={signal} />
-        <MetaRow label="exchanges" value={exchanges > 0 ? String(exchanges) : "—"} />
       </section>
-    </>
+    </div>
   );
 }
 
 /* ── School rail ────────────────────────────────────────────── */
 
 function SchoolRail({
-  activeView, onView, messages, signal,
+  activeView, onView, messages, signal, onNewSession,
 }: {
-  activeView: SchoolView;
-  onView:     (v: SchoolView) => void;
-  messages:   Message[];
-  signal:     SignalStatus;
+  activeView:   SchoolView;
+  onView:       (v: SchoolView) => void;
+  messages:     Message[];
+  signal:       SignalStatus;
+  onNewSession: () => void;
 }) {
+  const hasMessages = messages.length > 0;
+
   return (
-    <>
-      <section className="px-3 pt-3 pb-3 border-b" style={{ borderColor: "var(--r-border-soft)" }}>
-        <SectionLabel>Views</SectionLabel>
-        <div className="space-y-px">
-          <NavItem label="Chat"    active={activeView === "chat"}    onClick={() => onView("chat")}    icon={<IconChat />} />
-          <NavItem label="Library" active={activeView === "library"} onClick={() => onView("library")} icon={<IconLibrary />} />
-          <NavItem label="Archive" active={activeView === "archive"} onClick={() => onView("archive")} icon={<IconArchive />} />
-        </div>
+    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
+      <section style={{ padding: "14px 16px 10px" }}>
+        <SectionLabel>Context</SectionLabel>
+        <ContextItem label="General" active={activeView === "chat"}    onClick={() => onView("chat")} />
+        <ContextItem label="Library" active={activeView === "library"} onClick={() => onView("library")} />
+        <ContextItem label="Archive" active={activeView === "archive"} onClick={() => onView("archive")} />
+        <Divider />
+        <ContextItem label="New session" active={false} muted={!hasMessages} onClick={onNewSession} />
       </section>
 
-      <section className="px-3 pt-3 pb-3 border-b flex-1 overflow-y-auto" style={{ borderColor: "var(--r-border-soft)" }}>
-        <SectionLabel>Recent</SectionLabel>
-        <HistoryList messages={messages} />
-      </section>
+      {hasMessages && (
+        <>
+          <Divider />
+          <section style={{ padding: "4px 16px 10px" }}>
+            <SectionLabel>Recent</SectionLabel>
+            <ul>
+              {messages.filter(m => m.role === "user").slice().reverse().slice(0, 5).map(m => (
+                <li key={m.id} className="truncate"
+                  style={{ fontSize: "11px", color: "var(--r-subtext)", lineHeight: "1.5", padding: "3px 0" }}
+                  title={m.content}>
+                  {m.content.slice(0, 40)}{m.content.length > 40 ? "…" : ""}
+                </li>
+              ))}
+            </ul>
+          </section>
+        </>
+      )}
 
-      <section className="px-3 pt-3 pb-3">
-        <SectionLabel>Status</SectionLabel>
+      <section style={{ padding: "8px 16px 12px", marginTop: "auto" }}>
         <StatusIndicator status={signal} />
       </section>
-    </>
+    </div>
   );
 }
 
 /* ── Creation rail ──────────────────────────────────────────── */
 
 function CreationRail({
-  activeView, onView, messages, signal,
+  activeView, onView, messages, signal, onNewSession,
 }: {
-  activeView: CreationView;
-  onView:     (v: CreationView) => void;
-  messages:   Message[];
-  signal:     SignalStatus;
+  activeView:   CreationView;
+  onView:       (v: CreationView) => void;
+  messages:     Message[];
+  signal:       SignalStatus;
+  onNewSession: () => void;
 }) {
+  const hasMessages = messages.length > 0;
   const outputs = messages.filter(m => m.role === "assistant" && m.content.length > 0).length;
 
   return (
-    <>
-      <section className="px-3 pt-3 pb-3 border-b" style={{ borderColor: "var(--r-border-soft)" }}>
-        <SectionLabel>Views</SectionLabel>
-        <div className="space-y-px">
-          <NavItem label="Build"   active={activeView === "chat" || activeView === "terminal"} onClick={() => onView("chat")}     icon={<IconBuild />} />
-          <NavItem label="Archive" active={activeView === "archive"} onClick={() => onView("archive")} icon={<IconArchive />} />
-        </div>
+    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
+      <section style={{ padding: "14px 16px 10px" }}>
+        <SectionLabel>Context</SectionLabel>
+        <ContextItem label="Build"   active={activeView === "chat" || activeView === "terminal"} onClick={() => onView("chat")} />
+        <ContextItem label="Archive" active={activeView === "archive"} onClick={() => onView("archive")} />
+        <Divider />
+        <ContextItem label="New session" active={false} muted={!hasMessages} onClick={onNewSession} />
       </section>
 
-      <section className="px-3 pt-3 pb-3 border-b flex-1 overflow-y-auto" style={{ borderColor: "var(--r-border-soft)" }}>
-        <SectionLabel>Outputs</SectionLabel>
-        {outputs === 0 ? (
-          <p style={{ fontSize: "10px", color: "var(--r-dim)" }} className="px-1">No outputs yet</p>
-        ) : (
-          <HistoryList messages={messages.filter(m => m.role === "assistant")} />
-        )}
-      </section>
+      {outputs > 0 && (
+        <>
+          <Divider />
+          <section style={{ padding: "4px 16px 10px" }}>
+            <SectionLabel>Outputs</SectionLabel>
+            <p className="font-mono" style={{ fontSize: "10px", color: "var(--r-subtext)" }}>
+              {outputs} artifact{outputs !== 1 ? "s" : ""}
+            </p>
+          </section>
+        </>
+      )}
 
-      <section className="px-3 pt-3 pb-3">
-        <SectionLabel>Forge</SectionLabel>
+      <section style={{ padding: "8px 16px 12px", marginTop: "auto" }}>
         <StatusIndicator status={signal} />
-        <MetaRow label="outputs" value={outputs > 0 ? String(outputs) : "—"} />
       </section>
-    </>
+    </div>
   );
 }
 
@@ -254,44 +286,62 @@ export default function SideRail({
   onSchoolView,
   onCreationView,
   onNewNote,
+  onNewSession,
 }: SideRailProps) {
   return (
     <aside
-      className="w-48 shrink-0 border-r flex flex-col overflow-hidden"
-      style={{ borderColor: "var(--r-border)", backgroundColor: "var(--r-rail)" }}
+      className="shrink-0 border-r flex flex-col overflow-hidden"
+      style={{
+        width:           "168px",
+        borderColor:     "var(--r-border)",
+        backgroundColor: "var(--r-rail)",
+      }}
     >
-      {/* Rail header — chamber identity + new note */}
+      {/* Rail header */}
       <div
-        className="flex items-center justify-between px-4 border-b"
-        style={{ height: "44px", borderColor: "var(--r-border)" }}
+        className="flex items-center justify-between border-b"
+        style={{
+          height:          "44px",
+          borderColor:     "var(--r-border)",
+          paddingLeft:     "16px",
+          paddingRight:    "12px",
+        }}
       >
         <span
-          className="text-[10px] uppercase tracking-widest font-semibold select-none"
-          style={{ color: "var(--r-accent)", letterSpacing: "0.1em" }}
+          className="font-mono select-none"
+          style={{
+            fontSize:      "9px",
+            color:         "var(--r-subtext)",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+          }}
         >
           {activeTab}
         </span>
+
+        {/* New note — minimal icon */}
         <button
           onClick={onNewNote}
-          className="flex items-center justify-center w-6 h-6 transition-colors duration-150"
-          style={{ color: "var(--r-dim)" }}
+          className="flex items-center justify-center transition-colors duration-150"
+          style={{ color: "var(--r-dim)", width: "24px", height: "24px" }}
           title="New note"
           aria-label="New floating note"
         >
-          <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-            <path d="M5.5 1v9M1 5.5h9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
           </svg>
         </button>
       </div>
 
       {/* Chamber nav */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-h-0">
         {activeTab === "lab" && (
           <LabRail
             activeView={labView}
             onView={onLabView}
             messages={messages.lab}
             signal={signals.lab}
+            onNewSession={onNewSession}
           />
         )}
         {activeTab === "school" && (
@@ -300,6 +350,7 @@ export default function SideRail({
             onView={onSchoolView}
             messages={messages.school}
             signal={signals.school}
+            onNewSession={onNewSession}
           />
         )}
         {activeTab === "creation" && (
@@ -308,62 +359,10 @@ export default function SideRail({
             onView={onCreationView}
             messages={messages.creation}
             signal={signals.creation}
+            onNewSession={onNewSession}
           />
         )}
       </div>
     </aside>
-  );
-}
-
-/* ── Icons ──────────────────────────────────────────────────── */
-
-function IconChat() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-      <path d="M1 1.5h10v7H7l-2.5 2V8.5H1V1.5z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconAnalysis() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-      <path d="M1.5 9.5l2.5-3.5 2 2 2.5-4 2 3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconCode() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-      <path d="M3.5 4L1.5 6l2 2M8.5 4l2 2-2 2M6.5 2.5l-1 7" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconArchive() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-      <rect x="1" y="1.5" width="10" height="2.5" rx="0.5" stroke="currentColor" strokeWidth="1.1" />
-      <path d="M1.5 4v6h9V4" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
-      <path d="M4.5 7h3" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconLibrary() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-      <path d="M1.5 2.5h2v7h-2zM5 2.5h2v7H5zM8.5 3l2 .8v6l-2-.8V3z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconBuild() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-      <rect x="1" y="1" width="10" height="10" rx="1" stroke="currentColor" strokeWidth="1.1" />
-      <path d="M3.5 5.5h5M3.5 3.5h3M3.5 7.5h4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-    </svg>
   );
 }
