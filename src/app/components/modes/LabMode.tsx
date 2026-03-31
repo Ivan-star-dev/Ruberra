@@ -3,8 +3,7 @@
  * Discover → Chat / Analysis / Code / Archive / Domain / Experiment
  */
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { useState, useEffect, useRef } from "react";
 import { type Message, type LabView, type NavFn } from "../shell-types";
 import { BlockRenderer, InlineMarkdown } from "../BlockRenderer";
 import { ChamberChat, LabGlyph, type ChamberConfig } from "../ChamberChat";
@@ -22,6 +21,27 @@ const LAB_CONFIG: ChamberConfig = {
   glyph:       <LabGlyph />,
 };
 
+// ─── Fade wrapper (replaces motion.div / AnimatePresence) ─────────────────────────────
+
+function FadeIn({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.opacity = "0";
+    const id = requestAnimationFrame(() => {
+      el.style.transition = "opacity 0.18s ease";
+      el.style.opacity = "1";
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return (
+    <div ref={ref} style={{ opacity: 0, ...style }}>
+      {children}
+    </div>
+  );
+}
+
 // ─── Investigation Board (Analysis pane) ────────────────────────────────────────────
 
 function InvestigationBoard({ messages, navigate }: { messages: Message[]; navigate: NavFn }) {
@@ -30,9 +50,9 @@ function InvestigationBoard({ messages, navigate }: { messages: Message[]; navig
   const assistantMsgs = messages.filter((m) => m.role === "assistant" && m.content.length > 0);
   const userMsgs      = messages.filter((m) => m.role === "user");
 
-  const allBlocks = assistantMsgs.flatMap(m => m.blocks ?? []);
-  const findings  = allBlocks.filter(b => ["verdict","audit","report","evidence","signal"].includes(b.type));
-  const execBlocks= allBlocks.filter(b => ["execution","blueprint","matrix","timeline"].includes(b.type));
+  const allBlocks  = assistantMsgs.flatMap(m => m.blocks ?? []);
+  const findings   = allBlocks.filter(b => ["verdict","audit","report","evidence","signal"].includes(b.type));
+  const execBlocks = allBlocks.filter(b => ["execution","blueprint","matrix","timeline"].includes(b.type));
 
   const TAB_STYLE = (active: boolean) => ({
     fontSize: "10px",
@@ -71,7 +91,7 @@ function InvestigationBoard({ messages, navigate }: { messages: Message[]; navig
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "var(--r-bg)" }}>
-      <div style={{ display: "flex", alignItems: "center", borderBottom: "1px solid var(--r-border)", background: "var(--r-surface)", padding: "0 24px", flexShrink: 0, gap: "0" }}>
+      <div style={{ display: "flex", alignItems: "center", borderBottom: "1px solid var(--r-border)", background: "var(--r-surface)", padding: "0 24px", flexShrink: 0 }}>
         <button style={TAB_STYLE(view === "findings")} onClick={() => setView("findings")}>
           Findings {findings.length > 0 && `(${findings.length})`}
         </button>
@@ -87,7 +107,7 @@ function InvestigationBoard({ messages, navigate }: { messages: Message[]; navig
         </span>
       </div>
 
-      <div className="hide-scrollbar" style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
         <div style={{ maxWidth: "720px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "10px" }}>
 
           {view === "findings" && (
@@ -143,7 +163,7 @@ function InvestigationBoard({ messages, navigate }: { messages: Message[]; navig
   );
 }
 
-// ─── Archive ─────────────────────────────────────────────────────────────────────────────────
+// ─── Archive ──────────────────────────────────────────────────────────────────────────────────
 
 function LabArchive({ messages, navigate }: { messages: Message[]; navigate: NavFn }) {
   const sessions = messages.filter(m => m.role === "user").reverse();
@@ -198,17 +218,15 @@ export function LabMode({
   const showHome = labView === "home" || (!messages.length && labView === "chat");
 
   if (showHome) return (
-    <AnimatePresence mode="wait">
-      <motion.div key="lab-home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <LabDiscover
-          onStartSession={() => {
-            onLabView("chat");
-            onSend("Give me a structured analysis of the most important open problems in distributed systems, formatted as an evidence block with sources.");
-          }}
-          navigate={navigate}
-        />
-      </motion.div>
-    </AnimatePresence>
+    <FadeIn style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <LabDiscover
+        onStartSession={() => {
+          onLabView("chat");
+          onSend("Give me a structured analysis of the most important open problems in distributed systems, formatted as an evidence block with sources.");
+        }}
+        navigate={navigate}
+      />
+    </FadeIn>
   );
 
   if (labView === "domain")     return <LabDomainDetail     domainId={detailId}     navigate={navigate} onStartChat={(p) => { onLabView("chat"); onSend(p); }} />;
