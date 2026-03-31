@@ -71,7 +71,9 @@ export type SchoolView   = "chat" | "library"  | "archive";
 export type CreationView = "chat" | "terminal" | "archive";
 export type ChamberView  = LabView | SchoolView | CreationView;
 
-/** Navigation function — the core of the product connectivity system */
+// ── Navigation ──────────────────────────────────────────────────────────
+
+/** Navigation function — controls all cross-chamber routing */
 export type NavFn = (tab: Tab, view: string, id?: string) => void;
 
 // ── Floating notes ───────────────────────────────────────────────────────
