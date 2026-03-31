@@ -1,15 +1,3 @@
-"use client";
-
-import { useState } from "react";
-import {
-  type Tab,
-  type Message,
-  type SignalStatus,
-  type LabView,
-  type SchoolView,
-  type CreationView,
-  type NavFn,
-} from "./shell-types";
 /**
  * RUBERRA Shell Side Rail — chamber navigation
  */
@@ -31,43 +19,6 @@ interface ShellSideRailProps {
   navigate:       NavFn;
 }
 
-const ALL_TABS: Tab[] = ["lab", "school", "creation"];
-
-/* ── Shared primitives ──────────────────────────────────────────────── */
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p
-      className="text-[9px] uppercase tracking-widest select-none font-semibold mb-1.5 px-0.5"
-      style={{ color: "var(--r-subtext)" }}
-    >
-      {children}
-    </p>
-  );
-}
-
-function NavItem({
-  label, icon, active, onClick,
-}: {
-  label: string; icon: React.ReactNode; active: boolean; onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded text-[11px] transition-all duration-150 text-left"
-      style={{
-        backgroundColor: active ? "var(--r-border)" : "transparent",
-        color: active ? "var(--r-text)" : "var(--r-subtext)",
-        fontWeight: active ? 500 : 400,
-      }}
-    >
-      <span
-        className="w-3.5 h-3.5 shrink-0 flex items-center justify-center"
-        style={{ color: active ? "var(--r-accent)" : "var(--r-subtext)" }}
-      >
-        {icon}
-      </span>
-      <span className="truncate">{label}</span>
 const ALL_TABS: Tab[] = ['lab', 'school', 'creation'];
 const TAB_ACCENT: Record<Tab, string> = { lab: 'var(--r-accent)', school: 'var(--r-ok)', creation: 'var(--r-warn)' };
 
@@ -77,413 +28,150 @@ function SLabel({ children }: { children: React.ReactNode }) {
 
 function NavBtn({ label, icon, active, onClick }: { label: string; icon: React.ReactNode; active: boolean; onClick: () => void; }) {
   return (
-    <button onClick={onClick}
-      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '7px', padding: '5px 7px', borderRadius: '4px', border: 'none', background: active ? 'var(--r-border-soft)' : 'transparent', color: active ? 'var(--r-text)' : 'var(--r-subtext)', cursor: 'pointer', textAlign: 'left', fontSize: '11px', fontFamily: "'Inter', system-ui, sans-serif", fontWeight: active ? 500 : 400, outline: 'none', transition: 'background 0.1s ease', marginBottom: '1px' }}
-      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--r-border-soft)'; }}
+    <button
+      onClick={onClick}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: '7px',
+        padding: '5px 8px', border: 'none', borderRadius: '5px', cursor: 'pointer', outline: 'none',
+        textAlign: 'left', transition: 'background 0.1s ease',
+        background: active ? 'var(--r-elevated)' : 'transparent',
+        color: active ? 'var(--r-text)' : 'var(--r-subtext)',
+        fontWeight: active ? 500 : 400,
+      }}
+      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'var(--r-rail)'; }}
       onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
     >
-      <span style={{ color: active ? 'var(--r-accent)' : 'var(--r-dim)', flexShrink: 0, display: 'flex', opacity: active ? 1 : 0.8 }}>{icon}</span>
-      {label}
+      <span style={{ width: '12px', height: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: active ? TAB_ACCENT['lab'] : 'var(--r-dim)' }}>{icon}</span>
+      <span style={{ fontSize: '11px', fontFamily: "'Inter', system-ui, sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
     </button>
   );
 }
 
 function StatusDot({ status }: { status: SignalStatus }) {
-  const color =
-    status === "streaming" ? "var(--r-accent)" :
-    status === "completed" ? "var(--r-ok)" :
-    status === "error"     ? "var(--r-err)" :
-    "var(--r-dim)";
-  return (
-    <span
-      className="w-1.5 h-1.5 rounded-full shrink-0 inline-block"
-      style={{
-        backgroundColor: color,
-        animation: status === "streaming" ? "pulse 1s ease-in-out infinite" : "none",
-      }}
-    />
-  );
-}
-
-function SignalMeta({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between px-0.5 mt-0.5">
-      <span className="text-[9px] font-mono" style={{ color: "var(--r-dim)" }}>{label}</span>
-      <span className="text-[9px] font-mono" style={{ color: "var(--r-subtext)" }}>{value}</span>
-function Divider() { return <div style={{ height: '1px', background: 'var(--r-border-soft)', margin: '0' }} />; }
-
-function StatusDot({ status }: { status: SignalStatus }) {
   const color = status === 'streaming' ? 'var(--r-accent)' : status === 'completed' ? 'var(--r-ok)' : status === 'error' ? 'var(--r-err)' : 'var(--r-dim)';
-  return <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: color, flexShrink: 0, display: 'inline-block' }} />;
+  return <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0, animation: status === 'streaming' ? 'pulse 1s ease-in-out infinite' : 'none' }} />;
 }
 
-function SMeta({ label, value }: { label: string; value: string }) {
+function IChat()     { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 1h10v7H7l-3 2.5V8H1V1z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /></svg>; }
+function IAnalysis() { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 10l3-4 2.5 2L9 4l2 3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
+function ICode()     { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M3.5 3.5L1 6l2.5 2.5M8.5 3.5L11 6l-2.5 2.5M6.5 2.5l-1 7" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
+function IArchive()  { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="10" height="3" rx="0.5" stroke="currentColor" strokeWidth="1.1" /><path d="M1.5 4v6.5h9V4" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /><path d="M4.5 7h3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" /></svg>; }
+function ILibrary()  { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 2h2v8H1zM5 2h2v8H5zM9 2l2 1v7l-2-1V2z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /></svg>; }
+function ITerminal() { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><rect x="1" y="1.5" width="10" height="9" rx="1" stroke="currentColor" strokeWidth="1.1" /><path d="M3 5l2 1.5L3 8M6.5 8h2.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
+function IHome()     { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 5.5L6 1l5 4.5V11H7.5V8h-3v3H1V5.5z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /></svg>; }
+function IRoles()    { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.1" /><path d="M1 11c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" /></svg>; }
+
+function LabRail({ view, onView, messages, signal, navigate }: { view: LabView; onView: (v: LabView) => void; messages: Message[]; signal: SignalStatus; navigate: NavFn; }) {
+  const history = messages.filter(m => m.role === 'user').slice().reverse().slice(0, 5);
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1.5px 1px' }}>
-      <span style={{ fontSize: '9px', color: 'var(--r-dim)', fontFamily: 'monospace', letterSpacing: '0.04em' }}>{label}</span>
-      <span style={{ fontSize: '9px', color: 'var(--r-subtext)', fontFamily: 'monospace' }}>{value}</span>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ padding: '8px 8px 4px', flexShrink: 0 }}>
+        <SLabel>Navigate</SLabel>
+        <NavBtn label="Home"     icon={<IHome />}     active={view === 'home'}     onClick={() => onView('home')} />
+        <NavBtn label="Chat"     icon={<IChat />}     active={view === 'chat'}     onClick={() => onView('chat')} />
+        <NavBtn label="Analysis" icon={<IAnalysis />} active={view === 'analysis'} onClick={() => onView('analysis')} />
+        <NavBtn label="Code"     icon={<ICode />}     active={view === 'code'}     onClick={() => onView('code')} />
+        <NavBtn label="Archive"  icon={<IArchive />}  active={view === 'archive'}  onClick={() => onView('archive')} />
+      </div>
+      <div style={{ height: '1px', background: 'var(--r-border-soft)', flexShrink: 0 }} />
+      <div style={{ flex: 1, overflow: 'hidden', padding: '8px 8px 4px' }}>
+        <SLabel>Session</SLabel>
+        {history.length === 0
+          ? <p style={{ fontSize: '10px', color: 'var(--r-dim)', fontFamily: "'Inter', system-ui, sans-serif", paddingLeft: '2px' }}>No queries yet</p>
+          : history.map(m => (
+            <button key={m.id} onClick={() => navigate('lab', 'chat')} style={{ display: 'block', width: '100%', fontSize: '10px', color: 'var(--r-subtext)', fontFamily: "'Inter', system-ui, sans-serif", padding: '2px 4px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderRadius: '3px' }} title={m.content}>
+              {m.content.slice(0, 34)}{m.content.length > 34 ? '…' : ''}
+            </button>
+          ))}
+      </div>
+      <div style={{ height: '1px', background: 'var(--r-border-soft)', flexShrink: 0 }} />
+      <div style={{ padding: '7px 8px', flexShrink: 0 }}>
+        <SLabel>Kernel</SLabel>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <StatusDot status={signal} />
+          <span style={{ fontSize: '10px', color: 'var(--r-subtext)', fontFamily: "'Inter', system-ui, sans-serif", textTransform: 'capitalize' }}>{signal}</span>
+        </div>
+      </div>
     </div>
   );
 }
 
-/* ── Lab rail ──────────────────────────────────────────────────── */
-
-function LabRail({
-  activeView, onView, messages, signal,
-}: {
-  activeView: LabView; onView: (v: LabView) => void;
-  messages: Message[]; signal: SignalStatus;
-}) {
-  const history = messages.filter((m) => m.role === "user").slice().reverse().slice(0, 5);
-
-  return (
-    <>
-      <section className="px-3 pt-3 pb-2 border-b" style={{ borderColor: "var(--r-border-soft)" }}>
-        <SectionLabel>Navigate</SectionLabel>
-        <div className="space-y-0.5">
-          <NavItem label="Chat"     active={activeView === "chat"}     onClick={() => onView("chat")}     icon={<IconChat />} />
-          <NavItem label="Analysis" active={activeView === "analysis"} onClick={() => onView("analysis")} icon={<IconAnalysis />} />
-          <NavItem label="Code"     active={activeView === "code"}     onClick={() => onView("code")}     icon={<IconCode />} />
-          <NavItem label="Archive"  active={activeView === "archive"}  onClick={() => onView("archive")}  icon={<IconArchive />} />
-        </div>
-      </section>
-
-      <section className="px-3 pt-3 pb-2 border-b flex-1 overflow-y-auto" style={{ borderColor: "var(--r-border-soft)" }}>
-        <SectionLabel>Session</SectionLabel>
-        {history.length === 0 ? (
-          <p className="text-[10px] px-0.5" style={{ color: "var(--r-dim)" }}>No queries yet</p>
-        ) : (
-          <ul className="space-y-0.5">
-            {history.map((m) => (
-              <li
-                key={m.id}
-                className="text-[10px] px-2 py-1 rounded truncate cursor-default"
-                style={{ color: "var(--r-subtext)" }}
-                title={m.content}
-              >
-                {m.content.slice(0, 36)}{m.content.length > 36 ? "…" : ""}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="px-3 pt-3 pb-2">
-        <SectionLabel>Kernel</SectionLabel>
-        <div className="flex items-center gap-2 px-0.5">
-          <StatusDot status={signal} />
-          <span className="text-[10px] capitalize" style={{ color: "var(--r-subtext)" }}>{signal}</span>
-        </div>
-        <SignalMeta label="exchanges" value={String(messages.filter(m => m.role === "assistant" && m.content.length > 0).length)} />
-function LabRail({ view, onView, messages, signal, navigate }: { view: LabView; onView: (v: LabView) => void; messages: Message[]; signal: SignalStatus; navigate: NavFn; }) {
+function SchoolRail({ view, onView, messages, signal, navigate }: { view: SchoolView; onView: (v: SchoolView) => void; messages: Message[]; signal: SignalStatus; navigate: NavFn; }) {
   const history = messages.filter(m => m.role === 'user').slice().reverse().slice(0, 5);
   return (
-    <>
-      <section style={{ padding: '11px 10px 10px' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ padding: '8px 8px 4px', flexShrink: 0 }}>
         <SLabel>Navigate</SLabel>
-        <NavBtn label="Home"     active={view === 'home'}     onClick={() => onView('home')}     icon={<IHome />} />
-        <NavBtn label="Chat"     active={view === 'chat'}     onClick={() => onView('chat')}     icon={<IChat />} />
-        <NavBtn label="Analysis" active={view === 'analysis'} onClick={() => onView('analysis')} icon={<IAnalysis />} />
-        <NavBtn label="Code"     active={view === 'code'}     onClick={() => onView('code')}     icon={<ICode />} />
-        <NavBtn label="Archive"  active={view === 'archive'}  onClick={() => onView('archive')}  icon={<IArchive />} />
-      </section>
-      <Divider />
-      <section style={{ padding: '10px 10px', flex: 1, overflowY: 'auto' }}>
-        <SLabel>Session</SLabel>
-        {history.length === 0 ? <p style={{ fontSize: '10px', color: 'var(--r-dim)', paddingLeft: '1px', fontFamily: "'Inter', system-ui, sans-serif" }}>—</p>
-          : history.map(m => (
-            <button key={m.id} onClick={() => onView('chat')} title={m.content}
-              style={{ width: '100%', display: 'block', fontSize: '10px', color: 'var(--r-subtext)', padding: '3px 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'Inter', system-ui, sans-serif", background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', outline: 'none' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--r-text)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--r-subtext)'; }}
-            >{m.content.slice(0, 38)}{m.content.length > 38 ? '…' : ''}</button>
-          ))}
-      </section>
-      <Divider />
-      <section style={{ padding: '9px 10px' }}>
-        <SLabel>Kernel</SLabel>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '1px', marginBottom: '4px' }}>
-          <StatusDot status={signal} />
-          <span style={{ fontSize: '10px', color: 'var(--r-subtext)', fontFamily: "'Inter', system-ui, sans-serif", textTransform: 'capitalize' }}>{signal}</span>
-        </div>
-        <SMeta label="exchanges" value={String(messages.filter(m => m.role === 'assistant' && m.content.length > 0).length)} />
-      </section>
-    </>
-  );
-}
-
-/* ── School rail ────────────────────────────────────────────────── */
-
-function SchoolRail({
-  activeView, onView, messages, signal,
-}: {
-  activeView: SchoolView; onView: (v: SchoolView) => void;
-  messages: Message[]; signal: SignalStatus;
-}) {
-  const history = messages.filter((m) => m.role === "user").slice().reverse().slice(0, 5);
-
-  return (
-    <>
-      <section className="px-3 pt-3 pb-2 border-b" style={{ borderColor: "var(--r-border-soft)" }}>
-        <SectionLabel>Navigate</SectionLabel>
-        <div className="space-y-0.5">
-          <NavItem label="Chat"    active={activeView === "chat"}    onClick={() => onView("chat")}    icon={<IconChat />} />
-          <NavItem label="Library" active={activeView === "library"} onClick={() => onView("library")} icon={<IconLibrary />} />
-          <NavItem label="Archive" active={activeView === "archive"} onClick={() => onView("archive")} icon={<IconArchive />} />
-        </div>
-      </section>
-
-      <section className="px-3 pt-3 pb-2 border-b flex-1 overflow-y-auto" style={{ borderColor: "var(--r-border-soft)" }}>
-        <SectionLabel>Queries</SectionLabel>
-        {history.length === 0 ? (
-          <p className="text-[10px] px-0.5" style={{ color: "var(--r-dim)" }}>No queries yet</p>
-        ) : (
-          <ul className="space-y-0.5">
-            {history.map((m) => (
-              <li
-                key={m.id}
-                className="text-[10px] px-2 py-1 rounded truncate cursor-default"
-                style={{ color: "var(--r-subtext)" }}
-                title={m.content}
-              >
-                {m.content.slice(0, 36)}{m.content.length > 36 ? "…" : ""}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="px-3 pt-3 pb-2">
-        <SectionLabel>Status</SectionLabel>
-        <div className="flex items-center gap-2 px-0.5">
-          <StatusDot status={signal} />
-          <span className="text-[10px] capitalize" style={{ color: "var(--r-subtext)" }}>{signal}</span>
-function SchoolRail({ view, onView, messages, signal }: { view: SchoolView; onView: (v: SchoolView) => void; messages: Message[]; signal: SignalStatus; navigate: NavFn; }) {
-  const history = messages.filter(m => m.role === 'user').slice().reverse().slice(0, 5);
-  return (
-    <>
-      <section style={{ padding: '11px 10px 10px' }}>
-        <SLabel>Navigate</SLabel>
-        <NavBtn label="Home"    active={view === 'home'}    onClick={() => onView('home')}    icon={<IHome />} />
-        <NavBtn label="Chat"    active={view === 'chat'}    onClick={() => onView('chat')}    icon={<IChat />} />
-        <NavBtn label="Roles"   active={view === 'browse'}  onClick={() => onView('browse')}  icon={<IRole />} />
-        <NavBtn label="Library" active={view === 'library'} onClick={() => onView('library')} icon={<ILibrary />} />
-        <NavBtn label="Archive" active={view === 'archive'} onClick={() => onView('archive')} icon={<IArchive />} />
-      </section>
-      <Divider />
-      <section style={{ padding: '10px 10px', flex: 1, overflowY: 'auto' }}>
+        <NavBtn label="Home"    icon={<IHome />}    active={view === 'home'}    onClick={() => onView('home')} />
+        <NavBtn label="Chat"    icon={<IChat />}    active={view === 'chat'}    onClick={() => onView('chat')} />
+        <NavBtn label="Roles"   icon={<IRoles />}   active={view === 'browse'}  onClick={() => onView('browse')} />
+        <NavBtn label="Library" icon={<ILibrary />} active={view === 'library'} onClick={() => onView('library')} />
+        <NavBtn label="Archive" icon={<IArchive />} active={view === 'archive'} onClick={() => onView('archive')} />
+      </div>
+      <div style={{ height: '1px', background: 'var(--r-border-soft)', flexShrink: 0 }} />
+      <div style={{ flex: 1, overflow: 'hidden', padding: '8px 8px 4px' }}>
         <SLabel>Queries</SLabel>
-        {history.length === 0 ? <p style={{ fontSize: '10px', color: 'var(--r-dim)', paddingLeft: '1px', fontFamily: "'Inter', system-ui, sans-serif" }}>—</p>
+        {history.length === 0
+          ? <p style={{ fontSize: '10px', color: 'var(--r-dim)', fontFamily: "'Inter', system-ui, sans-serif", paddingLeft: '2px' }}>No queries yet</p>
           : history.map(m => (
-            <button key={m.id} onClick={() => onView('chat')} title={m.content}
-              style={{ width: '100%', display: 'block', fontSize: '10px', color: 'var(--r-subtext)', padding: '3px 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'Inter', system-ui, sans-serif", background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', outline: 'none' }}
-            >{m.content.slice(0, 38)}{m.content.length > 38 ? '…' : ''}</button>
+            <button key={m.id} onClick={() => navigate('school', 'chat')} style={{ display: 'block', width: '100%', fontSize: '10px', color: 'var(--r-subtext)', fontFamily: "'Inter', system-ui, sans-serif", padding: '2px 4px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderRadius: '3px' }} title={m.content}>
+              {m.content.slice(0, 34)}{m.content.length > 34 ? '…' : ''}
+            </button>
           ))}
-      </section>
-      <Divider />
-      <section style={{ padding: '9px 10px' }}>
+      </div>
+      <div style={{ height: '1px', background: 'var(--r-border-soft)', flexShrink: 0 }} />
+      <div style={{ padding: '7px 8px', flexShrink: 0 }}>
         <SLabel>Status</SLabel>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '1px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <StatusDot status={signal} />
           <span style={{ fontSize: '10px', color: 'var(--r-subtext)', fontFamily: "'Inter', system-ui, sans-serif", textTransform: 'capitalize' }}>{signal}</span>
         </div>
-      </section>
-    </>
+      </div>
+    </div>
   );
 }
 
-/* ── Creation rail ─────────────────────────────────────────────── */
-
-function CreationRail({
-  activeView, onView, messages, signal,
-}: {
-  activeView: CreationView; onView: (v: CreationView) => void;
-  messages: Message[]; signal: SignalStatus;
-}) {
-  const artifacts = messages.filter(m => m.role === "assistant" && m.content.length > 0).slice().reverse().slice(0, 5);
-
-  return (
-    <>
-      <section className="px-3 pt-3 pb-2 border-b" style={{ borderColor: "var(--r-border-soft)" }}>
-        <SectionLabel>Navigate</SectionLabel>
-        <div className="space-y-0.5">
-          <NavItem label="Chat"    active={activeView === "chat"}     onClick={() => onView("chat")}     icon={<IconChat />} />
-          <NavItem label="Build"   active={activeView === "terminal"} onClick={() => onView("terminal")} icon={<IconTerminal />} />
-          <NavItem label="Archive" active={activeView === "archive"}  onClick={() => onView("archive")}  icon={<IconArchive />} />
-        </div>
-      </section>
-
-      <section className="px-3 pt-3 pb-2 border-b flex-1 overflow-y-auto" style={{ borderColor: "var(--r-border-soft)" }}>
-        <SectionLabel>Artifacts</SectionLabel>
-        {artifacts.length === 0 ? (
-          <p className="text-[10px] px-0.5" style={{ color: "var(--r-dim)" }}>No artifacts yet</p>
-        ) : (
-          <ul className="space-y-0.5">
-            {artifacts.map((m) => (
-              <li
-                key={m.id}
-                className="text-[10px] px-2 py-1 rounded truncate cursor-default"
-                style={{ color: "var(--r-subtext)" }}
-                title={m.content}
-              >
-                {m.content.slice(0, 36)}{m.content.length > 36 ? "…" : ""}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="px-3 pt-3 pb-2">
-        <SectionLabel>Forge</SectionLabel>
-        <div className="flex items-center gap-2 px-0.5">
-          <StatusDot status={signal} />
-          <span className="text-[10px] capitalize" style={{ color: "var(--r-subtext)" }}>{signal}</span>
-        </div>
-        <SignalMeta label="outputs" value={String(artifacts.length)} />
-function CreationRail({ view, onView, messages, signal }: { view: CreationView; onView: (v: CreationView) => void; messages: Message[]; signal: SignalStatus; navigate: NavFn; }) {
+function CreationRail({ view, onView, messages, signal, navigate }: { view: CreationView; onView: (v: CreationView) => void; messages: Message[]; signal: SignalStatus; navigate: NavFn; }) {
   const artifacts = messages.filter(m => m.role === 'assistant' && m.content.length > 0).slice().reverse().slice(0, 5);
   return (
-    <>
-      <section style={{ padding: '11px 10px 10px' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ padding: '8px 8px 4px', flexShrink: 0 }}>
         <SLabel>Navigate</SLabel>
-        <NavBtn label="Home"    active={view === 'home'}     onClick={() => onView('home')}     icon={<IHome />} />
-        <NavBtn label="Chat"    active={view === 'chat'}     onClick={() => onView('chat')}     icon={<IChat />} />
-        <NavBtn label="Build"   active={view === 'terminal'} onClick={() => onView('terminal')} icon={<ITerminal />} />
-        <NavBtn label="Archive" active={view === 'archive'}  onClick={() => onView('archive')}  icon={<IArchive />} />
-      </section>
-      <Divider />
-      <section style={{ padding: '10px 10px', flex: 1, overflowY: 'auto' }}>
+        <NavBtn label="Home"    icon={<IHome />}     active={view === 'home'}     onClick={() => onView('home')} />
+        <NavBtn label="Chat"    icon={<IChat />}     active={view === 'chat'}     onClick={() => onView('chat')} />
+        <NavBtn label="Build"   icon={<ITerminal />} active={view === 'terminal'} onClick={() => onView('terminal')} />
+        <NavBtn label="Archive" icon={<IArchive />}  active={view === 'archive'}  onClick={() => onView('archive')} />
+      </div>
+      <div style={{ height: '1px', background: 'var(--r-border-soft)', flexShrink: 0 }} />
+      <div style={{ flex: 1, overflow: 'hidden', padding: '8px 8px 4px' }}>
         <SLabel>Artifacts</SLabel>
-        {artifacts.length === 0 ? <p style={{ fontSize: '10px', color: 'var(--r-dim)', paddingLeft: '1px', fontFamily: "'Inter', system-ui, sans-serif" }}>—</p>
+        {artifacts.length === 0
+          ? <p style={{ fontSize: '10px', color: 'var(--r-dim)', fontFamily: "'Inter', system-ui, sans-serif", paddingLeft: '2px' }}>No artifacts yet</p>
           : artifacts.map(m => (
-            <button key={m.id} onClick={() => onView('chat')} title={m.content}
-              style={{ width: '100%', display: 'block', fontSize: '10px', color: 'var(--r-subtext)', padding: '3px 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'Inter', system-ui, sans-serif", background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', outline: 'none' }}
-            >{m.content.slice(0, 38)}{m.content.length > 38 ? '…' : ''}</button>
+            <button key={m.id} onClick={() => navigate('creation', 'archive')} style={{ display: 'block', width: '100%', fontSize: '10px', color: 'var(--r-subtext)', fontFamily: "'Inter', system-ui, sans-serif", padding: '2px 4px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderRadius: '3px' }} title={m.content}>
+              {m.content.slice(0, 34)}{m.content.length > 34 ? '…' : ''}
+            </button>
           ))}
-      </section>
-      <Divider />
-      <section style={{ padding: '9px 10px' }}>
+      </div>
+      <div style={{ height: '1px', background: 'var(--r-border-soft)', flexShrink: 0 }} />
+      <div style={{ padding: '7px 8px', flexShrink: 0 }}>
         <SLabel>Forge</SLabel>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '1px', marginBottom: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <StatusDot status={signal} />
           <span style={{ fontSize: '10px', color: 'var(--r-subtext)', fontFamily: "'Inter', system-ui, sans-serif", textTransform: 'capitalize' }}>{signal}</span>
         </div>
-        <SMeta label="outputs" value={String(artifacts.length)} />
-      </section>
-    </>
+      </div>
+    </div>
   );
 }
 
-/* ── ShellSideRail ────────────────────────────────────────────────── */
-
-export function ShellSideRail({
-  activeTab, messages, signals,
-  labView, schoolView, creationView,
-  onLabView, onSchoolView, onCreationView,
-  onNewNote, onClearTab,
-  navigate: _navigate,
-}: ShellSideRailProps) {
-  return (
-    <aside
-      className="w-52 shrink-0 border-r flex flex-col overflow-hidden"
-      style={{ borderColor: "var(--r-border)", backgroundColor: "var(--r-rail)" }}
-    >
-      {/* Chamber header */}
-      <div
-        className="px-4 pt-3 pb-2 flex items-center justify-between border-b"
-        style={{ borderColor: "var(--r-border)" }}
-      >
-        <span
-          className="text-[9px] uppercase tracking-widest font-bold"
-          style={{ color: "var(--r-accent)" }}
-        >
-          {activeTab}
-        </span>
-        <button
-          onClick={onNewNote}
-          className="text-[9px] font-mono transition-colors duration-150"
-          style={{ color: "var(--r-dim)" }}
-          title="New floating note"
-        >
-          + note
-        </button>
-      </div>
-
-      {/* Chamber-specific nav */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        {activeTab === "lab" && (
-          <LabRail
-            activeView={labView}
-            onView={onLabView}
-            messages={messages.lab}
-            signal={signals.lab}
-          />
-        )}
-        {activeTab === "school" && (
-          <SchoolRail
-            activeView={schoolView}
-            onView={onSchoolView}
-            messages={messages.school}
-            signal={signals.school}
-          />
-        )}
-        {activeTab === "creation" && (
-          <CreationRail
-            activeView={creationView}
-            onView={onCreationView}
-            messages={messages.creation}
-            signal={signals.creation}
-          />
-        )}
-      </div>
-
-      {/* Cross-tab session summary */}
-      <div className="px-3 pt-2 pb-2 border-t" style={{ borderColor: "var(--r-border-soft)" }}>
-        <SectionLabel>Sessions</SectionLabel>
-        <ul>
-          {ALL_TABS.map((tab) => {
-            const count    = messages[tab].filter((m) => m.role === "assistant" && m.content.length > 0).length;
-            const isActive = tab === activeTab;
-            return (
-              <li
-                key={tab}
-                className="group flex items-center justify-between h-6 px-1 rounded text-[10px]"
-                style={{ color: isActive ? "var(--r-text)" : "var(--r-subtext)" }}
-              >
-                <span className="capitalize" style={{ fontWeight: isActive ? 500 : 400 }}>{tab}</span>
-                <span className="flex items-center gap-1.5">
-                  <span style={{ color: isActive ? "var(--r-accent)" : "var(--r-dim)", fontFamily: "monospace" }}>
-                    {count > 0 ? count : "—"}
-                  </span>
-                  {count > 0 && (
-                    <button
-                      onClick={() => onClearTab(tab)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity leading-none"
-                      style={{ color: "var(--r-dim)" }}
-                      title={`Clear ${tab}`}
-                      aria-label={`Clear ${tab} session`}
-                    >
-                      <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
-                        <path d="M2 2l6 6M8 2L2 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-                      </svg>
-                    </button>
-                  )}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      {/* Mode footer */}
-      <div className="px-4 py-2 border-t" style={{ borderColor: "var(--r-border-soft)" }}>
-        <span className="text-[9px] font-mono uppercase tracking-widest" style={{ color: "var(--r-dim)" }}>
-          mode · <span style={{ color: "var(--r-accent)" }}>{activeTab}</span>
 export function ShellSideRail({ activeTab, messages, signals, labView, schoolView, creationView, onLabView, onSchoolView, onCreationView, onNewNote, onClearTab, navigate }: ShellSideRailProps) {
   const accent = TAB_ACCENT[activeTab];
   return (
     <aside style={{ width: '184px', flexShrink: 0, borderRight: '1px solid var(--r-border)', background: 'var(--r-rail)', display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'background 0.2s ease' }}>
-      <div style={{ padding: '10px 11px 9px', borderBottom: '1px solid var(--r-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+
+      {/* Chamber header */}
+      <div style={{ padding: '10px 11px 9px', borderBottom: '1px solid var(--r-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: accent, display: 'inline-block', flexShrink: 0 }} />
           <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600, color: 'var(--r-text)', fontFamily: 'monospace', userSelect: 'none' }}>{activeTab}</span>
@@ -495,13 +183,15 @@ export function ShellSideRail({ activeTab, messages, signals, labView, schoolVie
         >+ note</button>
       </div>
 
+      {/* Chamber-specific nav */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
         {activeTab === 'lab'      && <LabRail      view={labView}      onView={onLabView}      messages={messages.lab}      signal={signals.lab}      navigate={navigate} />}
         {activeTab === 'school'   && <SchoolRail   view={schoolView}   onView={onSchoolView}   messages={messages.school}   signal={signals.school}   navigate={navigate} />}
         {activeTab === 'creation' && <CreationRail view={creationView} onView={onCreationView} messages={messages.creation} signal={signals.creation} navigate={navigate} />}
       </div>
 
-      <div style={{ borderTop: '1px solid var(--r-border)', padding: '8px 10px 7px' }}>
+      {/* Sessions summary */}
+      <div style={{ borderTop: '1px solid var(--r-border)', padding: '8px 10px 7px', flexShrink: 0 }}>
         <SLabel>Sessions</SLabel>
         {ALL_TABS.map(tab => {
           const count = messages[tab].filter(m => m.role === 'assistant' && m.content.length > 0).length;
@@ -524,7 +214,8 @@ export function ShellSideRail({ activeTab, messages, signals, labView, schoolVie
         })}
       </div>
 
-      <div style={{ padding: '5px 11px 7px', borderTop: '1px solid var(--r-border-soft)' }}>
+      {/* Mode footer */}
+      <div style={{ padding: '5px 11px 7px', borderTop: '1px solid var(--r-border-soft)', flexShrink: 0 }}>
         <span style={{ fontSize: '8px', fontFamily: 'monospace', letterSpacing: '0.10em', color: 'var(--r-dim)', textTransform: 'uppercase', userSelect: 'none' }}>
           mode · <span style={{ color: accent }}>{activeTab}</span>
         </span>
@@ -532,59 +223,3 @@ export function ShellSideRail({ activeTab, messages, signals, labView, schoolVie
     </aside>
   );
 }
-
-/* ── Icons ───────────────────────────────────────────────────────────── */
-
-function IconChat() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <path d="M1 1h10v7H7l-3 2.5V8H1V1z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function IconAnalysis() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <path d="M1 10l3-4 2.5 2L9 4l2 3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function IconCode() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <path d="M3.5 3.5L1 6l2.5 2.5M8.5 3.5L11 6l-2.5 2.5M6.5 2.5l-1 7" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function IconArchive() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <rect x="1" y="1" width="10" height="3" rx="0.5" stroke="currentColor" strokeWidth="1.1" />
-      <path d="M1.5 4v6.5h9V4" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
-      <path d="M4.5 7h3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
-    </svg>
-  );
-}
-function IconLibrary() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <path d="M1 2h2v8H1zM5 2h2v8H5zM9 2l2 1v7l-2-1V2z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function IconTerminal() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <rect x="1" y="1.5" width="10" height="9" rx="1" stroke="currentColor" strokeWidth="1.1" />
-      <path d="M3 5l2 1.5L3 8M6.5 8h2.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function IChat()     { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 1h10v7H7l-3 2.5V8H1V1z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /></svg>; }
-function IAnalysis() { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 10l3-4 2.5 2L9 4l2 3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
-function ICode()     { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M3.5 3.5L1 6l2.5 2.5M8.5 3.5L11 6l-2.5 2.5M6.5 2.5l-1 7" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
-function IArchive()  { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="10" height="3" rx=".5" stroke="currentColor" strokeWidth="1.1" /><path d="M1.5 4v6.5h9V4" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /><path d="M4.5 7h3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" /></svg>; }
-function ILibrary()  { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 2h2v8H1zM5 2h2v8H5zM9 2l2 1v7l-2-1V2z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /></svg>; }
-function ITerminal() { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><rect x="1" y="1.5" width="10" height="9" rx="1" stroke="currentColor" strokeWidth="1.1" /><path d="M3 5l2 1.5L3 8M6.5 8h2.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
-function IHome()    { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 5.5L6 1l5 4.5V11H7.5V8h-3v3H1V5.5z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" /></svg>; }
-function IRole()    { return <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.1" /><path d="M1 11c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" /></svg>; }
