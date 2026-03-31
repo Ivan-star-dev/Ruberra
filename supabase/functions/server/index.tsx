@@ -179,7 +179,6 @@ SECTION:Confidence Assessment
 - Hybrid approach viability | untested at >200 nodes | pending
 NEXT:Isolate the pre-vote mechanism and simulate partition recovery latency before committing to Raft.
 TAGS:consensus, distributed-systems, fault-tolerance`,
-
     `TYPE:evidence
 TITLE:Event-Driven Architecture — Signal Pack
 STATUS:pass
@@ -193,7 +192,6 @@ SECTION:Source Confidence
 - Internal benchmark data | methodology not disclosed | warn
 NEXT:Validate the 3.4× coupling claim against your specific service topology before using as architectural justification.
 TAGS:event-driven, architecture, evidence`,
-
     `TYPE:matrix
 TITLE:CQRS vs Event Sourcing — Trade-off Matrix
 STATUS:done
@@ -206,7 +204,6 @@ SECTION:Comparison
 NEXT:Start with CQRS without Event Sourcing. Add ES only when temporal replay or audit trail is a hard requirement.
 TAGS:cqrs, event-sourcing, architecture`,
   ],
-
   school: [
     `TYPE:lesson
 TITLE:CAP Theorem — First Principles
@@ -223,7 +220,6 @@ SECTION:Mental Model
 - A + P without C | serve stale data during partition | pending
 NEXT:Build intuition for C+P (CP systems) by studying how HBase behaves during a ZooKeeper leader election.
 TAGS:distributed-systems, consensus, fundamentals`,
-
     `TYPE:execution
 TITLE:Distributed Systems Learning Path
 STATUS:running
@@ -239,7 +235,6 @@ SECTION:Mastery Check
 - Can you derive the CAP impossibility? | test of true understanding | pending
 NEXT:Complete the Raft paper (Ongaro & Ousterhout, 2014) before moving to consistency models.
 TAGS:distributed-systems, curriculum, advanced`,
-
     `TYPE:dossier
 TITLE:Consensus Algorithms — Study Dossier
 STATUS:partial
@@ -255,7 +250,6 @@ SECTION:Raft
 NEXT:Implement Raft from scratch in any language. Paper-reading without implementation produces false confidence.
 TAGS:consensus, raft, paxos`,
   ],
-
   creation: [
     `TYPE:execution
 TITLE:AI Agent System — Build Plan
@@ -274,7 +268,6 @@ SECTION:Phase 3 — Production
 - Cost guardrails | token budget per session enforced | locked
 NEXT:Lock the tool/function schema before writing any orchestration code. Schema changes break everything downstream.
 TAGS:ai-agent, architecture, production`,
-
     `TYPE:blueprint
 TITLE:Technical Deep-Dive Essay — Structure Blueprint
 STATUS:draft
@@ -290,7 +283,6 @@ SECTION:Quality Standards
 - Counter-argument presence | mandatory — builds credibility | pending
 NEXT:Write the opening frame sentence first. Everything else is built on it. Do not proceed until it is precise.
 TAGS:writing, analysis, technical`,
-
     `TYPE:audit
 TITLE:API Design Review
 STATUS:partial
@@ -313,7 +305,6 @@ function makeFallbackStream(tab: string): ReadableStream<Uint8Array> {
   const text = pool[Math.floor(Math.random() * pool.length)];
   const encoder = new TextEncoder();
   let i = 0;
-
   return new ReadableStream<Uint8Array>({
     start(controller) {
       setTimeout(function emit() {
@@ -332,41 +323,24 @@ function makeFallbackStream(tab: string): ReadableStream<Uint8Array> {
 // ─── Chat endpoint ────────────────────────────────────────────────────────────
 app.post("/make-server-b9f46b68/chat", async (c) => {
   let body: { tab: string; messages: { role: string; content: string }[] };
-
   try {
     body = await c.req.json();
   } catch {
     return c.text("Bad request", 400);
   }
-
   const { tab, messages } = body;
   const apiKey = Deno.env.get("OPENAI_API_KEY");
-
   if (apiKey) {
-    const systemMessage = {
-      role: "system",
-      content: SYSTEM_PROMPTS[tab] ?? SYSTEM_PROMPTS["lab"],
-    };
-
+    const systemMessage = { role: "system", content: SYSTEM_PROMPTS[tab] ?? SYSTEM_PROMPTS["lab"] };
     try {
       const upstream = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          stream: true,
-          temperature: 0.3,
-          messages: [systemMessage, ...messages],
-        }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({ model: "gpt-4o", stream: true, temperature: 0.3, messages: [systemMessage, ...messages] }),
       });
-
       if (upstream.ok && upstream.body) {
         const encoder = new TextEncoder();
         const decoder = new TextDecoder();
-
         const stream = new ReadableStream<Uint8Array>({
           async start(controller) {
             const reader = upstream.body!.getReader();
@@ -384,9 +358,7 @@ app.post("/make-server-b9f46b68/chat", async (c) => {
                     const parsed = JSON.parse(data);
                     const content = parsed.choices?.[0]?.delta?.content;
                     if (content) controller.enqueue(encoder.encode(content));
-                  } catch {
-                    // malformed SSE line — skip
-                  }
+                  } catch { /* malformed SSE line — skip */ }
                 }
               }
             } finally {
@@ -395,25 +367,13 @@ app.post("/make-server-b9f46b68/chat", async (c) => {
             }
           },
         });
-
-        return new Response(stream, {
-          headers: {
-            "Content-Type": "text/plain; charset=utf-8",
-            "Access-Control-Allow-Origin": "*",
-          },
-        });
+        return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": "*" } });
       }
     } catch (err) {
       console.log("[Ruberra] OpenAI fetch failed, using fallback:", err);
     }
   }
-
-  return new Response(makeFallbackStream(tab), {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Access-Control-Allow-Origin": "*",
-    },
-  });
+  return new Response(makeFallbackStream(tab), { headers: { "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": "*" } });
 });
 
 Deno.serve(app.fetch);
