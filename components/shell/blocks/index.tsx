@@ -1,60 +1,56 @@
 import { type MessageBlock, type BlockItem, type StatusFlag } from "../types";
 
-// ─── Semantic color system ────────────────────────────────────────────────────
+// ─── Semantic color helpers — CSS-var based, works in dark + light ────────────
 
-function statusBadgeClass(status: StatusFlag): string {
+function statusBg(status: StatusFlag | undefined): string {
   switch (status) {
-    case "pass": case "done": case "live":
-      return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-    case "fail":
-      return "bg-red-50 text-red-700 border border-red-200";
-    case "partial": case "warn":
-      return "bg-amber-50 text-amber-700 border border-amber-200";
-    case "running": case "current":
-      return "bg-indigo-50 text-indigo-700 border border-indigo-200";
-    case "pending": case "skip": case "locked": default:
-      return "bg-stone-100 text-stone-500 border border-stone-200";
+    case "pass": case "done": case "live":   return "color-mix(in srgb, var(--r-ok) 10%, var(--r-surface))";
+    case "fail":                              return "color-mix(in srgb, var(--r-err) 10%, var(--r-surface))";
+    case "partial": case "warn":             return "color-mix(in srgb, var(--r-warn) 10%, var(--r-surface))";
+    case "running": case "current":          return "color-mix(in srgb, var(--r-accent) 8%, var(--r-surface))";
+    default:                                 return "transparent";
   }
 }
 
-function statusRowBg(status: StatusFlag | undefined): string {
+function statusColor(status: StatusFlag | undefined): string {
   switch (status) {
-    case "pass": case "done": case "live":    return "bg-emerald-50/70";
-    case "fail":                               return "bg-red-50/70";
-    case "partial": case "warn":              return "bg-amber-50/70";
-    case "running": case "current":           return "bg-indigo-50/50";
-    default:                                  return "";
+    case "pass": case "done": case "live":   return "var(--r-ok)";
+    case "fail":                              return "var(--r-err)";
+    case "partial": case "warn":             return "var(--r-warn)";
+    case "running": case "current":          return "var(--r-accent)";
+    default:                                 return "var(--r-muted)";
   }
 }
 
-function valueColor(status: StatusFlag | undefined): string {
-  switch (status) {
-    case "pass": case "done": case "live":    return "text-emerald-600";
-    case "fail":                               return "text-red-600";
-    case "partial": case "warn":              return "text-amber-600";
-    case "running": case "current":           return "text-indigo-600";
-    default:                                  return "text-ruberra-subtext";
-  }
+function statusBadgeStyle(status: StatusFlag): React.CSSProperties {
+  return {
+    backgroundColor: statusBg(status),
+    color:           statusColor(status),
+    border:          `1px solid color-mix(in srgb, ${statusColor(status)} 30%, var(--r-border))`,
+  };
 }
 
-// Mutation prefix DNA — maps status to a mono diff symbol
-const MUTATION: Record<string, { symbol: string; color: string }> = {
-  pass:    { symbol: "+", color: "text-emerald-600" },
-  done:    { symbol: "+", color: "text-emerald-600" },
-  live:    { symbol: "+", color: "text-emerald-600" },
-  fail:    { symbol: "−", color: "text-red-600"     },
-  warn:    { symbol: "~", color: "text-amber-600"   },
-  partial: { symbol: "~", color: "text-amber-600"   },
-  running: { symbol: "›", color: "text-indigo-600"  },
-  current: { symbol: "›", color: "text-indigo-600"  },
-  pending: { symbol: "·", color: "text-stone-400"   },
-  skip:    { symbol: "·", color: "text-stone-400"   },
-  locked:  { symbol: "·", color: "text-stone-400"   },
+// Mutation prefix — diff-style symbol per status
+const MUTATION: Record<string, { symbol: string }> = {
+  pass:    { symbol: "+" },
+  done:    { symbol: "+" },
+  live:    { symbol: "+" },
+  fail:    { symbol: "−" },
+  warn:    { symbol: "~" },
+  partial: { symbol: "~" },
+  running: { symbol: "›" },
+  current: { symbol: "›" },
+  pending: { symbol: "·" },
+  skip:    { symbol: "·" },
+  locked:  { symbol: "·" },
 };
 
 export function StatusBadge({ status }: { status: StatusFlag }) {
   return (
-    <span className={["text-[10px] font-medium px-1.5 py-0.5 rounded capitalize", statusBadgeClass(status)].join(" ")}>
+    <span
+      className="text-[10px] font-mono px-1.5 py-0.5 capitalize"
+      style={statusBadgeStyle(status)}
+    >
       {status}
     </span>
   );
@@ -65,7 +61,10 @@ export function StatusBadge({ status }: { status: StatusFlag }) {
 function SectionLabel({ heading }: { heading: string }) {
   if (!heading) return null;
   return (
-    <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-ruberra-muted select-none">
+    <p
+      className="px-4 pt-3 pb-1 text-[9px] font-semibold uppercase tracking-[0.12em] select-none"
+      style={{ color: "var(--r-subtext)" }}
+    >
       {heading}
     </p>
   );
@@ -73,9 +72,12 @@ function SectionLabel({ heading }: { heading: string }) {
 
 function NextMoveFooter({ next }: { next: string }) {
   return (
-    <div className="px-4 py-2.5 border-t border-ruberra-border flex items-start gap-2 bg-ruberra-surface">
-      <span className="text-ruberra-accent text-sm font-semibold shrink-0 font-mono">→</span>
-      <span className="text-sm text-ruberra-text">{next}</span>
+    <div
+      className="px-4 py-2.5 flex items-start gap-2 border-t"
+      style={{ borderColor: "var(--r-border-soft)", backgroundColor: "var(--r-elevated)" }}
+    >
+      <span className="text-sm font-semibold shrink-0 font-mono" style={{ color: "var(--r-accent)" }}>→</span>
+      <span className="text-sm" style={{ color: "var(--r-text)" }}>{next}</span>
     </div>
   );
 }
@@ -84,58 +86,65 @@ function NextMoveFooter({ next }: { next: string }) {
 
 type RailMode = "execution" | "lesson";
 
-function railColor(status: StatusFlag | undefined): string {
-  switch (status) {
-    case "done": case "pass":             return "bg-emerald-200";
-    case "running": case "current":       return "bg-indigo-200";
-    case "fail":                          return "bg-red-200";
-    default:                              return "bg-ruberra-border";
-  }
-}
-
 function RailCircle({ status, mode }: { status: StatusFlag | undefined; mode: RailMode }) {
   const isDone    = status === "done" || status === "pass";
   const isActive  = status === "running" || status === "current";
   const isFailed  = status === "fail";
   const isLocked  = status === "locked";
 
-  if (mode === "lesson") {
-    return (
-      <div className={[
-        "relative z-10 w-5 h-5 rounded-full flex items-center justify-center shrink-0 border-2",
-        isDone   ? "bg-emerald-50 border-emerald-400" :
-        isActive ? "bg-indigo-50 border-indigo-400"   :
-        isLocked ? "bg-stone-50 border-stone-200"     :
-        "bg-white border-ruberra-border",
-      ].join(" ")}>
-        {isDone   && <span className="text-emerald-600 text-[9px] font-bold leading-none">✓</span>}
-        {isActive && <span className="text-indigo-600 text-[9px] font-bold leading-none">→</span>}
-        {isLocked && <span className="text-stone-400 text-[9px] leading-none">⊘</span>}
-        {!isDone && !isActive && !isLocked && <span className="w-1 h-1 rounded-full bg-stone-300" />}
-      </div>
-    );
-  }
+  const borderColor =
+    isDone   ? "var(--r-ok)"      :
+    isActive ? "var(--r-accent)"  :
+    isFailed ? "var(--r-err)"     :
+    isLocked ? "var(--r-dim)"     :
+    "var(--r-border)";
+
+  const bgColor =
+    isDone   ? "color-mix(in srgb, var(--r-ok) 12%, var(--r-surface))"     :
+    isActive ? "color-mix(in srgb, var(--r-accent) 12%, var(--r-surface))" :
+    isFailed ? "color-mix(in srgb, var(--r-err) 12%, var(--r-surface))"    :
+    "var(--r-surface)";
 
   return (
-    <div className={[
-      "relative z-10 w-5 h-5 rounded-full flex items-center justify-center shrink-0 border-2",
-      isDone   ? "bg-emerald-50 border-emerald-400" :
-      isActive ? "bg-indigo-50 border-indigo-400"   :
-      isFailed ? "bg-red-50 border-red-400"         :
-      "bg-white border-ruberra-border",
-    ].join(" ")}>
-      {isDone   && <span className="text-emerald-600 text-[9px] font-bold leading-none">✓</span>}
-      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
-      {isFailed && <span className="text-red-500 text-[9px] font-bold leading-none">✗</span>}
-      {!isDone && !isActive && !isFailed && <span className="w-1 h-1 rounded-full bg-stone-300" />}
+    <div
+      className="relative z-10 w-5 h-5 rounded-full flex items-center justify-center shrink-0 border-2"
+      style={{ borderColor, backgroundColor: bgColor }}
+    >
+      {isDone && (
+        <span className="text-[9px] font-bold leading-none" style={{ color: "var(--r-ok)" }}>✓</span>
+      )}
+      {isActive && mode === "execution" && (
+        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: "var(--r-accent)" }} />
+      )}
+      {isActive && mode === "lesson" && (
+        <span className="text-[9px] font-bold leading-none" style={{ color: "var(--r-accent)" }}>→</span>
+      )}
+      {isFailed && (
+        <span className="text-[9px] font-bold leading-none" style={{ color: "var(--r-err)" }}>✗</span>
+      )}
+      {isLocked && (
+        <span className="text-[9px] leading-none" style={{ color: "var(--r-muted)" }}>⊘</span>
+      )}
+      {!isDone && !isActive && !isFailed && !isLocked && (
+        <span className="w-1 h-1 rounded-full" style={{ backgroundColor: "var(--r-dim)" }} />
+      )}
     </div>
   );
+}
+
+function railLineColor(status: StatusFlag | undefined): string {
+  switch (status) {
+    case "done": case "pass":     return "var(--r-ok)";
+    case "running": case "current": return "var(--r-accent)";
+    case "fail":                  return "var(--r-err)";
+    default:                      return "var(--r-border)";
+  }
 }
 
 function StateRail({ items, mode }: { items: BlockItem[]; mode: RailMode }) {
   return (
     <div className="relative py-1">
-      <div className="absolute left-[27px] top-3 bottom-3 w-px bg-ruberra-border" />
+      <div className="absolute left-[27px] top-3 bottom-3 w-px" style={{ backgroundColor: "var(--r-border)" }} />
       {items.map((item, ii) => {
         const isDone   = item.status === "done" || item.status === "pass";
         const isActive = item.status === "running" || item.status === "current";
@@ -144,20 +153,30 @@ function StateRail({ items, mode }: { items: BlockItem[]; mode: RailMode }) {
         return (
           <div key={ii} className="flex items-start gap-3 px-4 py-1.5 relative">
             {!isLast && (
-              <div className={["absolute left-[27px] top-[22px] bottom-0 w-px", railColor(item.status)].join(" ")} />
+              <div
+                className="absolute left-[27px] top-[22px] bottom-0 w-px"
+                style={{ backgroundColor: railLineColor(item.status) }}
+              />
             )}
             <RailCircle status={item.status} mode={mode} />
             <div className="flex-1 min-w-0 flex items-center justify-between gap-2 mt-0.5">
-              <span className={[
-                "text-sm",
-                isDone   ? "line-through text-ruberra-muted" :
-                isActive ? "text-ruberra-text font-medium"   :
-                isFailed ? "text-red-700"                    :
-                "text-ruberra-subtext",
-              ].join(" ")}>
+              <span
+                className="text-sm"
+                style={{
+                  textDecoration: isDone ? "line-through" : "none",
+                  color: isDone   ? "var(--r-muted)"    :
+                         isActive ? "var(--r-text)"     :
+                         isFailed ? "var(--r-err)"      :
+                         "var(--r-subtext)",
+                  fontWeight: isActive ? 500 : 400,
+                }}
+              >
                 {item.label}
                 {item.value && !isDone && (
-                  <span className={["ml-2 font-normal font-mono text-xs", valueColor(item.status)].join(" ")}>
+                  <span
+                    className="ml-2 font-normal font-mono text-xs"
+                    style={{ color: statusColor(item.status) }}
+                  >
                     {item.value}
                   </span>
                 )}
@@ -171,17 +190,76 @@ function StateRail({ items, mode }: { items: BlockItem[]; mode: RailMode }) {
   );
 }
 
+// ─── Block container primitive ────────────────────────────────────────────────
+
+function BlockCard({
+  children,
+  heavy = false,
+}: {
+  children: React.ReactNode;
+  heavy?: boolean;
+}) {
+  return (
+    <div
+      className="overflow-hidden"
+      style={{
+        backgroundColor: "var(--r-surface)",
+        border: heavy
+          ? `2px solid color-mix(in srgb, var(--r-text) 18%, var(--r-border))`
+          : `1px solid var(--r-border)`,
+        borderRadius: "6px",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function BlockHeader({
+  title,
+  status,
+  right,
+}: {
+  title: string;
+  status?: StatusFlag;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="px-4 py-3 flex items-center justify-between border-b"
+      style={{
+        borderColor: "var(--r-border-soft)",
+        backgroundColor: "var(--r-elevated)",
+      }}
+    >
+      <div className="flex items-center gap-2.5 min-w-0">
+        {status && (
+          <span
+            className="w-2 h-2 rounded-full shrink-0"
+            style={{ backgroundColor: statusColor(status) }}
+          />
+        )}
+        <span
+          className="text-sm font-medium truncate"
+          style={{ color: "var(--r-text)" }}
+        >
+          {title}
+        </span>
+      </div>
+      <div className="flex items-center gap-2 shrink-0 ml-3">
+        {right}
+        {status && <StatusBadge status={status} />}
+      </div>
+    </div>
+  );
+}
+
 // ─── Verdict — heaviest weight ────────────────────────────────────────────────
 
 function VerdictBlock({ block }: { block: MessageBlock }) {
   return (
-    <div className="rounded-xl border-2 border-ruberra-text/20 overflow-hidden bg-white">
-      <div className="px-4 py-3 flex items-center justify-between border-b-2 border-ruberra-text/10 bg-ruberra-stone">
-        <span className="text-sm font-semibold text-ruberra-text truncate pr-2">
-          {block.title ?? "Verdict"}
-        </span>
-        {block.status && <StatusBadge status={block.status} />}
-      </div>
+    <BlockCard heavy>
+      <BlockHeader title={block.title ?? "Verdict"} status={block.status} />
       {block.sections.map((section, si) => (
         <div key={si}>
           <SectionLabel heading={section.heading} />
@@ -189,15 +267,25 @@ function VerdictBlock({ block }: { block: MessageBlock }) {
             {section.items.map((item, ii) => (
               <li
                 key={ii}
-                className={["flex items-center justify-between gap-2 px-4 py-1.5 text-sm", statusRowBg(item.status)].join(" ")}
+                className="flex items-center justify-between gap-2 px-4 py-1.5 text-sm border-b last:border-b-0"
+                style={{
+                  backgroundColor: statusBg(item.status),
+                  borderColor: "var(--r-border-soft)",
+                }}
               >
                 <span className="flex items-center gap-2 min-w-0">
-                  <span className="w-1 h-1 rounded-full bg-ruberra-border shrink-0" />
-                  <span className="truncate text-ruberra-text">{item.label}</span>
+                  <span
+                    className="w-1 h-1 rounded-full shrink-0"
+                    style={{ backgroundColor: "var(--r-border)" }}
+                  />
+                  <span className="truncate" style={{ color: "var(--r-text)" }}>{item.label}</span>
                 </span>
                 <span className="flex items-center gap-2 shrink-0">
                   {item.value && (
-                    <span className={["font-mono text-[11px]", valueColor(item.status)].join(" ")}>
+                    <span
+                      className="font-mono text-[11px]"
+                      style={{ color: statusColor(item.status) }}
+                    >
                       {item.value}
                     </span>
                   )}
@@ -209,7 +297,7 @@ function VerdictBlock({ block }: { block: MessageBlock }) {
         </div>
       ))}
       {block.meta?.next && <NextMoveFooter next={block.meta.next} />}
-    </div>
+    </BlockCard>
   );
 }
 
@@ -217,13 +305,8 @@ function VerdictBlock({ block }: { block: MessageBlock }) {
 
 function ExecutionBlock({ block }: { block: MessageBlock }) {
   return (
-    <div className="rounded-xl border border-ruberra-border overflow-hidden bg-white">
-      <div className="px-4 py-2.5 flex items-center justify-between border-b border-ruberra-border bg-ruberra-accent/5">
-        <span className="text-sm font-medium text-ruberra-text truncate pr-2">
-          {block.title ?? "Execution"}
-        </span>
-        {block.status && <StatusBadge status={block.status} />}
-      </div>
+    <BlockCard>
+      <BlockHeader title={block.title ?? "Execution"} status={block.status} />
       {block.sections.map((section, si) => (
         <div key={si}>
           <SectionLabel heading={section.heading} />
@@ -231,7 +314,7 @@ function ExecutionBlock({ block }: { block: MessageBlock }) {
         </div>
       ))}
       {block.meta?.next && <NextMoveFooter next={block.meta.next} />}
-    </div>
+    </BlockCard>
   );
 }
 
@@ -239,20 +322,25 @@ function ExecutionBlock({ block }: { block: MessageBlock }) {
 
 function LessonBlock({ block }: { block: MessageBlock }) {
   return (
-    <div className="rounded-xl border border-ruberra-border overflow-hidden bg-white">
-      <div className="px-4 py-2.5 flex items-center justify-between border-b border-ruberra-border bg-ruberra-surface">
-        <span className="text-sm font-medium text-ruberra-text truncate pr-2">
-          {block.title ?? "Lesson"}
-        </span>
-        <div className="flex items-center gap-2 shrink-0">
-          {block.meta?.progress && (
-            <span className="font-mono text-[10px] text-ruberra-subtext border border-ruberra-border px-1.5 py-0.5 rounded">
+    <BlockCard>
+      <BlockHeader
+        title={block.title ?? "Lesson"}
+        status={block.status}
+        right={
+          block.meta?.progress ? (
+            <span
+              className="font-mono text-[10px] border px-1.5 py-0.5"
+              style={{
+                color: "var(--r-subtext)",
+                borderColor: "var(--r-border)",
+                backgroundColor: "var(--r-elevated)",
+              }}
+            >
               {block.meta.progress}
             </span>
-          )}
-          {block.status && <StatusBadge status={block.status} />}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
       {block.sections.map((section, si) => (
         <div key={si}>
           <SectionLabel heading={section.heading} />
@@ -260,42 +348,62 @@ function LessonBlock({ block }: { block: MessageBlock }) {
         </div>
       ))}
       {block.meta?.next && <NextMoveFooter next={block.meta.next} />}
-    </div>
+    </BlockCard>
   );
 }
 
-// ─── Creation ────────────────────────────────────────────────────────────────
+// ─── Creation ─────────────────────────────────────────────────────────────────
 
 function CreationBlock({ block }: { block: MessageBlock }) {
   const hasTags = block.meta?.tags && block.meta.tags.length > 0;
   return (
-    <div className="rounded-xl border border-ruberra-border overflow-hidden bg-white">
-      <div className="px-4 py-2.5 flex items-center justify-between border-b border-ruberra-border bg-ruberra-surface">
-        <span className="text-sm font-medium text-ruberra-text truncate pr-2">
-          {block.title ?? "Creation"}
-        </span>
-        <div className="flex items-center gap-2 shrink-0">
-          {hasTags && block.meta!.tags!.map((tag, i) => (
-            <span key={i} className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-ruberra-warm text-ruberra-subtext border border-ruberra-border">
-              {tag}
-            </span>
-          ))}
-          {block.status && <StatusBadge status={block.status} />}
-        </div>
-      </div>
+    <BlockCard>
+      <BlockHeader
+        title={block.title ?? "Creation"}
+        status={block.status}
+        right={
+          hasTags ? (
+            <>
+              {block.meta!.tags!.map((tag, i) => (
+                <span
+                  key={i}
+                  className="text-[10px] font-mono px-1.5 py-0.5 border"
+                  style={{
+                    color: "var(--r-subtext)",
+                    borderColor: "var(--r-border)",
+                    backgroundColor: "var(--r-elevated)",
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </>
+          ) : undefined
+        }
+      />
       {block.sections.map((section, si) => {
-        const isArtifact = section.heading.toLowerCase().includes("artifact") ||
-                           section.heading.toLowerCase().includes("output");
+        const isArtifact =
+          section.heading.toLowerCase().includes("artifact") ||
+          section.heading.toLowerCase().includes("output");
         return (
           <div key={si}>
             <SectionLabel heading={section.heading} />
             {isArtifact ? (
-              <div className="mx-4 mb-3 rounded-lg border border-ruberra-border bg-ruberra-stone px-3 py-2.5">
+              <div
+                className="mx-4 mb-3 px-3 py-2.5 border"
+                style={{
+                  borderColor: "var(--r-border)",
+                  backgroundColor: "var(--r-elevated)",
+                }}
+              >
                 {section.items.map((item, ii) => (
                   <div key={ii} className="flex items-center justify-between gap-2 py-1 text-sm">
-                    <span className="text-ruberra-text truncate">{item.label}</span>
+                    <span style={{ color: "var(--r-text)" }}>{item.label}</span>
                     {item.value && (
-                      <span className={["font-mono text-xs", valueColor(item.status)].join(" ")}>
+                      <span
+                        className="font-mono text-xs"
+                        style={{ color: statusColor(item.status) }}
+                      >
                         {item.value}
                       </span>
                     )}
@@ -305,11 +413,18 @@ function CreationBlock({ block }: { block: MessageBlock }) {
             ) : (
               <ul className="pb-1">
                 {section.items.map((item, ii) => (
-                  <li key={ii} className="flex items-center justify-between gap-2 px-4 py-1.5 text-sm">
-                    <span className="text-ruberra-subtext">{item.label}</span>
+                  <li
+                    key={ii}
+                    className="flex items-center justify-between gap-2 px-4 py-1.5 text-sm border-b last:border-b-0"
+                    style={{ borderColor: "var(--r-border-soft)" }}
+                  >
+                    <span style={{ color: "var(--r-subtext)" }}>{item.label}</span>
                     <span className="flex items-center gap-2 shrink-0">
                       {item.value && (
-                        <span className={["font-mono text-xs", valueColor(item.status)].join(" ")}>
+                        <span
+                          className="font-mono text-xs"
+                          style={{ color: statusColor(item.status) }}
+                        >
                           {item.value}
                         </span>
                       )}
@@ -323,21 +438,16 @@ function CreationBlock({ block }: { block: MessageBlock }) {
         );
       })}
       {block.meta?.next && <NextMoveFooter next={block.meta.next} />}
-    </div>
+    </BlockCard>
   );
 }
 
-// ─── Report — mutation diff rows ─────────────────────────────────────────────
+// ─── Report — mutation diff rows ──────────────────────────────────────────────
 
 function ReportBlock({ block }: { block: MessageBlock }) {
   return (
-    <div className="rounded-xl border border-ruberra-border overflow-hidden bg-white">
-      <div className="px-4 py-2.5 flex items-center justify-between border-b border-ruberra-border bg-ruberra-surface">
-        <span className="text-sm font-medium text-ruberra-text truncate pr-2">
-          {block.title ?? "Report"}
-        </span>
-        {block.status && <StatusBadge status={block.status} />}
-      </div>
+    <BlockCard>
+      <BlockHeader title={block.title ?? "Report"} status={block.status} />
       {block.sections.map((section, si) => (
         <div key={si}>
           <SectionLabel heading={section.heading} />
@@ -347,22 +457,29 @@ function ReportBlock({ block }: { block: MessageBlock }) {
               return (
                 <li
                   key={ii}
-                  className={[
-                    "flex items-start justify-between gap-2 px-4 py-1.5 text-sm border-b border-ruberra-border/40 last:border-0",
-                    statusRowBg(item.status),
-                  ].join(" ")}
+                  className="flex items-start justify-between gap-2 px-4 py-1.5 text-sm border-b last:border-b-0"
+                  style={{
+                    backgroundColor: statusBg(item.status),
+                    borderColor: "var(--r-border-soft)",
+                  }}
                 >
                   <span className="flex items-center gap-2 min-w-0">
                     {mut && (
-                      <span className={["font-mono text-[11px] font-semibold shrink-0 w-3", mut.color].join(" ")}>
+                      <span
+                        className="font-mono text-[11px] font-semibold shrink-0 w-3"
+                        style={{ color: statusColor(item.status) }}
+                      >
                         {mut.symbol}
                       </span>
                     )}
-                    <span className="text-ruberra-text flex-1 min-w-0">{item.label}</span>
+                    <span style={{ color: "var(--r-text)", flex: 1 }}>{item.label}</span>
                   </span>
                   <span className="flex items-center gap-2 shrink-0">
                     {item.value && (
-                      <span className={["font-mono text-[11px]", valueColor(item.status)].join(" ")}>
+                      <span
+                        className="font-mono text-[11px]"
+                        style={{ color: statusColor(item.status) }}
+                      >
                         {item.value}
                       </span>
                     )}
@@ -375,31 +492,37 @@ function ReportBlock({ block }: { block: MessageBlock }) {
         </div>
       ))}
       {block.meta?.next && <NextMoveFooter next={block.meta.next} />}
-    </div>
+    </BlockCard>
   );
 }
 
-// ─── Signal — `*` meta line ───────────────────────────────────────────────────
-// Flat unbordered strip — machine metadata pulse, not UI chrome
+// ─── Signal — flat meta pulse ─────────────────────────────────────────────────
 
 function SignalBlock({ block }: { block: MessageBlock }) {
   const allItems = block.sections.flatMap((s) => s.items);
   return (
     <div className="flex items-center gap-1 text-[11px] py-1.5 flex-wrap">
-      <span className="font-mono font-semibold text-amber-500 shrink-0 mr-1">*</span>
+      <span className="font-mono font-semibold shrink-0 mr-1" style={{ color: "var(--r-warn)" }}>*</span>
       {block.title && (
-        <span className="font-mono text-ruberra-muted mr-2 shrink-0 uppercase text-[9px] tracking-widest">
+        <span
+          className="font-mono mr-2 shrink-0 uppercase text-[9px] tracking-widest"
+          style={{ color: "var(--r-muted)" }}
+        >
           {block.title}
         </span>
       )}
       {allItems.map((item, i) => (
         <span key={i} className="flex items-center gap-1 shrink-0">
-          {i > 0 && <span className="text-ruberra-border mx-1 select-none">·</span>}
-          <span className="text-ruberra-subtext">{item.label}</span>
+          {i > 0 && (
+            <span className="mx-1 select-none" style={{ color: "var(--r-border)" }}>·</span>
+          )}
+          <span style={{ color: "var(--r-subtext)" }}>{item.label}</span>
           {item.status ? (
             <StatusBadge status={item.status} />
           ) : item.value ? (
-            <span className="font-mono font-medium text-ruberra-text ml-0.5">{item.value}</span>
+            <span className="font-mono font-medium ml-0.5" style={{ color: "var(--r-text)" }}>
+              {item.value}
+            </span>
           ) : null}
         </span>
       ))}
@@ -407,11 +530,11 @@ function SignalBlock({ block }: { block: MessageBlock }) {
   );
 }
 
-// ─── Dispatcher ──────────────────────────────────────────────────────────────
+// ─── Dispatcher ───────────────────────────────────────────────────────────────
 
 export function BlockRenderer({ blocks }: { blocks: MessageBlock[] }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 mt-2">
       {blocks.map((block, i) => {
         switch (block.type) {
           case "verdict":   return <VerdictBlock   key={i} block={block} />;

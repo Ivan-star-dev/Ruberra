@@ -147,9 +147,59 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d4d1cc;
+  background: var(--r-border);
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #b8b4af;
+  background: var(--r-muted);
+}
+
+/* ── Chat surface animations ─────────────────────────────────────────────── */
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.r-message-enter {
+  animation: slideInUp 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Terminal surface utilities ──────────────────────────────────────────── */
+
+/* Streaming cursor blink */
+@keyframes termCursorBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.rt-cursor::after {
+  content: "▋";
+  font-family: ui-monospace, monospace;
+  font-size: 0.7em;
+  color: var(--rt-amber);
+  animation: termCursorBlink 0.9s step-end infinite;
+  margin-left: 1px;
+}
+
+/* Running state pulse line */
+@keyframes runningPulse {
+  0%   { opacity: 0.4; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+.rt-running {
+  animation: runningPulse 1.6s ease-in-out infinite;
+}
+
+/* ── Block entrance animation ────────────────────────────────────────────── */
+
+@keyframes blockReveal {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.r-block-enter {
+  animation: blockReveal 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
