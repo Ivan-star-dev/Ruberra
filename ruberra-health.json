@@ -1,0 +1,33 @@
+{
+  "results": [
+    {
+      "check": "script:dev",
+      "ok": true
+    },
+    {
+      "check": "script:build",
+      "ok": true
+    },
+    {
+      "check": "script:start",
+      "ok": true
+    },
+    {
+      "check": "file:tsconfig.json",
+      "ok": true
+    },
+    {
+      "check": "file:app/page.tsx",
+      "ok": true
+    },
+    {
+      "check": "file:app/layout.tsx",
+      "ok": true
+    }
+  ],
+  "totals": {
+    "pass": 6,
+    "fail": 0,
+    "total": 6
+  }
+}
